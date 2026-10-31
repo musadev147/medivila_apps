@@ -8,6 +8,7 @@ import '../../constants/app_config.dart';
 import '../../models/medivila_models.dart';
 import '../../networks/api_access.dart';
 import '../../networks/medivila_api_services.dart';
+import 'doctor_booking_screen.dart';
 
 class DoctorsScreen extends StatefulWidget {
   const DoctorsScreen({super.key});
@@ -21,6 +22,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   List<DepartmentModel> _departments = [];
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
+  DoctorModel? _selectedDoctor;
 
   @override
   void initState() {
@@ -58,6 +60,20 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_selectedDoctor != null) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          setState(() => _selectedDoctor = null);
+        },
+        child: DoctorBookingScreen(
+          doctor: _selectedDoctor!,
+          onBack: () => setState(() => _selectedDoctor = null),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -309,20 +325,23 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   }
 
   Widget _buildDoctorCard(DoctorModel doc) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+    return InkWell(
+      onTap: () => _openBookingModal(doc),
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -531,6 +550,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -625,14 +645,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
   }
 
   void _openBookingModal(DoctorModel doc) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (_) => _DoctorBookingSheet(doctor: doc),
-    );
+    setState(() => _selectedDoctor = doc);
   }
 }
 
@@ -864,121 +877,123 @@ class _DoctorBookingSheetState extends State<_DoctorBookingSheet> {
         16.w,
         MediaQuery.of(context).viewInsets.bottom + 20.h,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'ভিডিও পরামর্শ বুকিং',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.accent,
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          Text(
-            widget.doctor.name,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
-          SizedBox(height: 12.h),
-
-          TextField(
-            controller: _nameCtrl,
-            decoration: InputDecoration(
-              labelText: 'রোগীর নাম',
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-          ),
-          SizedBox(height: 10.h),
-
-          TextField(
-            controller: _phoneCtrl,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(
-              labelText: '১১ ডিজিটের মোবাইল নম্বর',
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-            ),
-          ),
-          SizedBox(height: 12.h),
-
-          Text(
-            'পছন্দের সময়সূচি (Slot):',
-            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.h),
-          if (_slotsLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_slots.isEmpty)
-            const Text('এই তারিখে কোনো সময়-সূচি পাওয়া যায়নি')
-          else
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              children: _slots.map((slot) {
-                final isSel = _selectedSlot == slot.time;
-                return ChoiceChip(
-                  label: Text(slot.time),
-                  selected: isSel,
-                  onSelected: slot.isAvailable
-                      ? (_) => setState(() => _selectedSlot = slot.time)
-                      : null,
-                  selectedColor: AppColors.primary,
-                  labelStyle: TextStyle(
-                    color: isSel ? Colors.white : AppColors.text,
-                    fontSize: 10.5.sp,
-                    fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ভিডিও পরামর্শ বুকিং',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.accent,
                   ),
-                );
-              }).toList(),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
             ),
-          SizedBox(height: 18.h),
+            Text(
+              widget.doctor.name,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            SizedBox(height: 12.h),
 
-          SizedBox(
-            width: double.infinity,
-            height: 46.h,
-            child: ElevatedButton(
-              onPressed: _submitting || _slotsLoading || _selectedSlot == null
-                  ? null
-                  : _confirmBooking,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+            TextField(
+              controller: _nameCtrl,
+              decoration: InputDecoration(
+                labelText: 'রোগীর নাম',
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
-              child: _submitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      'বুকিং নিশ্চিত করুন (৳ ${widget.doctor.effectiveFee.toStringAsFixed(0)})',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
             ),
-          ),
-        ],
+            SizedBox(height: 10.h),
+
+            TextField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: '১১ ডিজিটের মোবাইল নম্বর',
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+
+            Text(
+              'পছন্দের সময়সূচি (Slot):',
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8.h),
+            if (_slotsLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (_slots.isEmpty)
+              const Text('এই তারিখে কোনো সময়-সূচি পাওয়া যায়নি')
+            else
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: _slots.map((slot) {
+                  final isSel = _selectedSlot == slot.time;
+                  return ChoiceChip(
+                    label: Text(slot.time),
+                    selected: isSel,
+                    onSelected: slot.isAvailable
+                        ? (_) => setState(() => _selectedSlot = slot.time)
+                        : null,
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSel ? Colors.white : AppColors.text,
+                      fontSize: 10.5.sp,
+                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+            SizedBox(height: 18.h),
+
+            SizedBox(
+              width: double.infinity,
+              height: 46.h,
+              child: ElevatedButton(
+                onPressed: _submitting || _slotsLoading || _selectedSlot == null
+                    ? null
+                    : _confirmBooking,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                child: _submitting
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'বুকিং নিশ্চিত করুন (৳ ${widget.doctor.effectiveFee.toStringAsFixed(0)})',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

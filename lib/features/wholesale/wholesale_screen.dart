@@ -261,113 +261,115 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
           16.w,
           MediaQuery.of(context).viewInsets.bottom + 20.h,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'হোলসেল পার্টনারশিপ আবেদন',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'হোলসেল পার্টনারশিপ আবেদন',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            SizedBox(height: 10.h),
-            TextField(
-              controller: businessCtrl,
-              decoration: InputDecoration(
-                labelText: 'ফার্মেসি / প্রতিষ্ঠানের নাম',
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            TextField(
-              controller: ownerCtrl,
-              decoration: InputDecoration(
-                labelText: 'মালিকের নাম',
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'যোগাযোগ নম্বর',
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            TextField(
-              controller: drugLicenseCtrl,
-              decoration: InputDecoration(
-                labelText: 'ড্রাগ লাইসেন্স নম্বর (DGDA)',
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            SizedBox(
-              width: double.infinity,
-              height: 46.h,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (businessCtrl.text.trim().isEmpty ||
-                      phoneCtrl.text.trim().isEmpty) {
-                    AppToast.error('প্রতিষ্ঠানের নাম এবং ফোন নম্বর আবশ্যক');
-                    return;
-                  }
-                  final res = await WholesaleApi.instance.submitApplication({
-                    'business_name': businessCtrl.text.trim(),
-                    'owner_name': ownerCtrl.text.trim(),
-                    'phone': phoneCtrl.text.trim(),
-                    'drug_license': drugLicenseCtrl.text.trim(),
-                  });
-                  if (mounted) {
-                    Navigator.pop(context);
-                    AppToast.success(res['message'] ?? 'আবেদন গৃহীত হয়েছে!');
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
                   ),
-                ),
-                child: const Text(
-                  'আবেদন জমা দিন',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                ],
+              ),
+              SizedBox(height: 10.h),
+              TextField(
+                controller: businessCtrl,
+                decoration: InputDecoration(
+                  labelText: 'ফার্মেসি / প্রতিষ্ঠানের নাম',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
               ),
-            ),
-          ],
+              SizedBox(height: 8.h),
+              TextField(
+                controller: ownerCtrl,
+                decoration: InputDecoration(
+                  labelText: 'মালিকের নাম',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'যোগাযোগ নম্বর',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: drugLicenseCtrl,
+                decoration: InputDecoration(
+                  labelText: 'ড্রাগ লাইসেন্স নম্বর (DGDA)',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              SizedBox(
+                width: double.infinity,
+                height: 46.h,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (businessCtrl.text.trim().isEmpty ||
+                        phoneCtrl.text.trim().isEmpty) {
+                      AppToast.error('প্রতিষ্ঠানের নাম এবং ফোন নম্বর আবশ্যক');
+                      return;
+                    }
+                    final res = await WholesaleApi.instance.submitApplication({
+                      'business_name': businessCtrl.text.trim(),
+                      'owner_name': ownerCtrl.text.trim(),
+                      'phone': phoneCtrl.text.trim(),
+                      'drug_license': drugLicenseCtrl.text.trim(),
+                    });
+                    if (mounted) {
+                      Navigator.pop(context);
+                      AppToast.success(res['message'] ?? 'আবেদন গৃহীত হয়েছে!');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                  child: const Text(
+                    'আবেদন জমা দিন',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
