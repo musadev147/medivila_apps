@@ -1,4 +1,5 @@
 import 'dart:developer';
+
 import 'package:rxdart/rxdart.dart';
 
 import '../models/medivila_models.dart';
@@ -42,7 +43,10 @@ class GetProductsRx extends RxResponseInt<List<MedicineProduct>> {
 
   Future<bool> fetchProducts({int? categoryId, String? search}) async {
     try {
-      List<MedicineProduct> data = await api.getProducts(categoryId: categoryId, search: search);
+      List<MedicineProduct> data = await api.getProducts(
+        categoryId: categoryId,
+        search: search,
+      );
       return await handleSuccessWithReturn(data);
     } catch (error) {
       log("fetchProducts Error: $error");
@@ -59,7 +63,34 @@ class GetProductsRx extends RxResponseInt<List<MedicineProduct>> {
   }
 }
 
-// 3. Specialist Doctors Rx
+// 3. Categories Rx
+class GetCategoriesRx extends RxResponseInt<List<CategoryItem>> {
+  final api = CategoriesApi.instance;
+
+  GetCategoriesRx({required super.empty, required super.dataFetcher});
+
+  ValueStream<List<CategoryItem>> get valueStreamData => dataFetcher.stream;
+
+  Future<bool> fetchCategories() async {
+    try {
+      final data = await api.getCategories();
+      return await handleSuccessWithReturn(data);
+    } catch (error) {
+      log("fetchCategories Error: $error");
+      return await handleErrorWithReturn(error);
+    }
+  }
+
+  @override
+  handleSuccessWithReturn(data) async {
+    if (!dataFetcher.isClosed) {
+      dataFetcher.sink.add(data);
+    }
+    return true;
+  }
+}
+
+// 4. Specialist Doctors Rx
 class GetDoctorsRx extends RxResponseInt<List<DoctorModel>> {
   final api = DoctorsApi.instance;
 
@@ -69,7 +100,10 @@ class GetDoctorsRx extends RxResponseInt<List<DoctorModel>> {
 
   Future<bool> fetchDoctors({int? departmentId, String? search}) async {
     try {
-      List<DoctorModel> data = await api.getDoctors(departmentId: departmentId, search: search);
+      List<DoctorModel> data = await api.getDoctors(
+        departmentId: departmentId,
+        search: search,
+      );
       return await handleSuccessWithReturn(data);
     } catch (error) {
       return await handleErrorWithReturn(error);
@@ -85,7 +119,7 @@ class GetDoctorsRx extends RxResponseInt<List<DoctorModel>> {
   }
 }
 
-// 4. Lab Tests Rx
+// 5. Lab Tests Rx
 class GetLabTestsRx extends RxResponseInt<List<LabTestModel>> {
   final api = LabTestsApi.instance;
 

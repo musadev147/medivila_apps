@@ -1,8 +1,11 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../common_wigdets/app_toast.dart';
+import '../../common_wigdets/medivila_product_card.dart';
 import '../../constants/app_colors.dart';
 import '../../models/medivila_models.dart';
 import '../../networks/medivila_api_services.dart';
@@ -23,6 +26,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late MedicineProduct _product;
   bool _isLoading = true;
   String? _loadError;
+  List<MedicineProduct> _relatedProducts = [];
+  bool _isRelatedLoading = false;
+  String? _relatedError;
 
   @override
   void initState() {
@@ -53,11 +59,53 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _selectedSize = product.sizes.isNotEmpty ? product.sizes.first : null;
         _isLoading = false;
       });
+      _loadRelatedProducts(product);
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _loadError = 'পণ্যের তথ্য লোড করা যায়নি। আবার চেষ্টা করুন।';
+      });
+    }
+  }
+
+  Future<void> _loadRelatedProducts(MedicineProduct product) async {
+    final categoryId = product.categoryId;
+    if (categoryId == null) {
+      setState(() {
+        _relatedProducts = [];
+        _isRelatedLoading = false;
+        _relatedError = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isRelatedLoading = true;
+      _relatedError = null;
+    });
+    try {
+      final products = await ProductsApi.instance.getProducts(
+        categoryId: categoryId,
+        limit: 9,
+      );
+      if (!mounted) return;
+      setState(() {
+        _relatedProducts = products
+            .where(
+              (candidate) =>
+                  candidate.id != product.id && candidate.slug != product.slug,
+            )
+            .take(8)
+            .toList();
+        _isRelatedLoading = false;
+      });
+    } catch (error) {
+      log('Related products load failed: $error');
+      if (!mounted) return;
+      setState(() {
+        _relatedError = 'সাজেস্টেড পণ্য লোড করা যায়নি। আবার চেষ্টা করুন।';
+        _isRelatedLoading = false;
       });
     }
   }
@@ -359,6 +407,76 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
                     ),
                   ),
+                  if (p.categoryId != null) ...[
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 10.h),
+                      child: Text(
+                        'এই ক্যাটাগরির আরও পণ্য',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                    if (_isRelatedLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 28),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_relatedError != null)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 18.h),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Text(
+                                _relatedError!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => _loadRelatedProducts(p),
+                                child: const Text('আবার চেষ্টা করুন'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_relatedProducts.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 18.h),
+                        child: Text(
+                          'এই ক্যাটাগরিতে আর কোনো পণ্য পাওয়া যায়নি।',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _relatedProducts.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.68,
+                                crossAxisSpacing: 10.w,
+                                mainAxisSpacing: 12.h,
+                              ),
+                          itemBuilder: (context, index) => MedivilaProductCard(
+                            product: _relatedProducts[index],
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),

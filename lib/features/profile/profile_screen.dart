@@ -59,6 +59,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  Future<void> _confirmLogout(AuthProvider auth) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFFDC2626),
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'লগআউট',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে লগআউট করতে চান?',
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: const Color(0xFF475569),
+          ),
+        ),
+        actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 14.h),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'বাতিল',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'লগআউট',
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await auth.logout();
+      AppToast.success('সফলভাবে লগআউট হয়েছে');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -139,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         InkWell(
                           onTap: user == null
                               ? () => _showAuthModal()
-                              : () => auth.logout(),
+                              : () => _confirmLogout(auth),
                           child: Text(
                             user == null
                                 ? 'লগইন বা রেজিস্ট্রেশন করুন >'
@@ -147,7 +228,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             style: TextStyle(
                               fontSize: 10.5.sp,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: user == null
+                                  ? AppColors.primary
+                                  : const Color(0xFFDC2626),
                             ),
                           ),
                         ),
@@ -358,6 +441,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+
+            // Dedicated Logout Button (when logged in)
+            if (auth.loggedIn) ...[
+              SizedBox(height: 16.h),
+              InkWell(
+                onTap: () => _confirmLogout(auth),
+                borderRadius: BorderRadius.circular(14.r),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 13.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.logout_rounded,
+                        color: Color(0xFFDC2626),
+                        size: 20,
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'লগআউট করুন (Log Out)',
+                        style: TextStyle(
+                          fontSize: 13.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -44,6 +44,7 @@ class _SplashScreenState extends State<SplashScreen>
     // 1. Kick off bootstrap and cart loading in parallel
     final futures = <Future>[
       getBootstrapRx.fetchBootstrap(),
+      getCategoriesRx.fetchCategories(),
       getProductsRx.fetchProducts(),
       getLabTestsRx.fetchLabTests(),
       getDoctorsRx.fetchDoctors(),

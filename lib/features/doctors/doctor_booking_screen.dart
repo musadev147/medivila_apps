@@ -8,17 +8,14 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../common_wigdets/app_toast.dart';
+import '../../common_wigdets/live_chat_button.dart';
 import '../../constants/app_config.dart';
 import '../../models/medivila_models.dart';
 import '../../networks/medivila_api_services.dart';
 import '../../provider/auth_provider.dart';
 
 class DoctorBookingScreen extends StatefulWidget {
-  const DoctorBookingScreen({
-    super.key,
-    required this.doctor,
-    this.onBack,
-  });
+  const DoctorBookingScreen({super.key, required this.doctor, this.onBack});
 
   final DoctorModel doctor;
   final VoidCallback? onBack;
@@ -111,9 +108,7 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
       if (!mounted) return;
       setState(() {
         _slotsLoading = false;
-        _slots = [
-          TimeSlot(time: '6:00 PM - 10:00 PM', isAvailable: true),
-        ];
+        _slots = [TimeSlot(time: '6:00 PM - 10:00 PM', isAvailable: true)];
         _selectedSlot = _slots.first.time;
       });
     }
@@ -203,13 +198,18 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
 
   void _showBookingSuccessDialog(Map<String, dynamic> res) {
     final booking = res['booking'] as Map? ?? {};
-    final bookingId = booking['booking_id']?.toString() ?? 'MD-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    final bookingId =
+        booking['booking_id']?.toString() ??
+        'MD-${DateTime.now().millisecondsSinceEpoch % 100000}';
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        scrollable: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
         contentPadding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 20.h),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -320,10 +320,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
               width: double.infinity,
               height: 44.h,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // close dialog
-                  _handleBack(); // back to list
-                },
+                onPressed: () =>
+                    LiveChatFloatingButton.showJoinOptions(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00A896),
                   shape: RoundedRectangleBorder(
@@ -331,7 +329,7 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                   ),
                 ),
                 child: const Text(
-                  'ঠিক আছে, ধন্যবাদ',
+                  'Join',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -449,31 +447,19 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.home_rounded,
-            size: 14.sp,
-            color: const Color(0xFF64748B),
-          ),
+          Icon(Icons.home_rounded, size: 14.sp, color: const Color(0xFF64748B)),
           SizedBox(width: 4.w),
           Text(
             'হোম',
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: const Color(0xFF64748B),
-            ),
+            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF64748B)),
           ),
           Text(
             '  /  স্পেশালিস্ট ডক্টর  /  ',
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: const Color(0xFF94A3B8),
-            ),
+            style: TextStyle(fontSize: 11.sp, color: const Color(0xFF94A3B8)),
           ),
           Expanded(
             child: Text(
@@ -526,7 +512,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11.r),
-                  child: widget.doctor.avatar != null &&
+                  child:
+                      widget.doctor.avatar != null &&
                           widget.doctor.avatar!.isNotEmpty
                       ? Image.network(
                           widget.doctor.avatarUrl,
@@ -601,7 +588,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                   iconBg: const Color(0xFFE0F2FE),
                   iconColor: const Color(0xFF0284C7),
                   title: 'Experience',
-                  value: '${widget.doctor.experienceYears > 0 ? widget.doctor.experienceYears : 5} years',
+                  value:
+                      '${widget.doctor.experienceYears > 0 ? widget.doctor.experienceYears : 5} years',
                 ),
               ),
               SizedBox(width: 10.w),
@@ -632,7 +620,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                   iconBg: const Color(0xFFFEF3C7),
                   iconColor: const Color(0xFFD97706),
                   title: 'Reviews',
-                  value: '${widget.doctor.totalReviews > 0 ? widget.doctor.totalReviews : 2}',
+                  value:
+                      '${widget.doctor.totalReviews > 0 ? widget.doctor.totalReviews : 2}',
                 ),
               ),
               SizedBox(width: 10.w),
@@ -711,10 +700,7 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
           Container(
             width: 28.w,
             height: 28.w,
-            decoration: BoxDecoration(
-              color: iconBg,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
             child: Center(
               child: Icon(icon, color: iconColor, size: 14.sp),
             ),
@@ -915,7 +901,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF00A896).withOpacity(0.12),
+                                color: const Color(0xFF00A896)
+                                    .withOpacity(0.12),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -1011,20 +998,23 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                       : null,
                   borderRadius: BorderRadius.circular(20.r),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 4.h,
+                    ),
                     decoration: BoxDecoration(
                       color: isSel
                           ? const Color(0xFFE0F2F1)
                           : (slot.isAvailable
-                              ? const Color(0xFFF8FAFC)
-                              : const Color(0xFFF1F5F9)),
+                                ? const Color(0xFFF8FAFC)
+                                : const Color(0xFFF1F5F9)),
                       borderRadius: BorderRadius.circular(20.r),
                       border: Border.all(
                         color: isSel
                             ? const Color(0xFF00A896)
                             : (slot.isAvailable
-                                ? const Color(0xFFCBD5E1)
-                                : const Color(0xFFE2E8F0)),
+                                  ? const Color(0xFFCBD5E1)
+                                  : const Color(0xFFE2E8F0)),
                         width: isSel ? 1.5 : 1.0,
                       ),
                     ),
@@ -1053,8 +1043,8 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
                                   color: isSel
                                       ? const Color(0xFF00796B)
                                       : (slot.isAvailable
-                                          ? const Color(0xFF334155)
-                                          : const Color(0xFF94A3B8)),
+                                            ? const Color(0xFF334155)
+                                            : const Color(0xFF94A3B8)),
                                 ),
                               ),
                             ),
@@ -1118,7 +1108,10 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF00A896), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFF00A896),
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -1161,7 +1154,10 @@ class _DoctorBookingScreenState extends State<DoctorBookingScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF00A896), width: 1.5),
+                borderSide: const BorderSide(
+                  color: Color(0xFF00A896),
+                  width: 1.5,
+                ),
               ),
             ),
           ),

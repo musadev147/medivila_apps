@@ -36,6 +36,7 @@ class ProductsApi {
     int? categoryId,
     String? search,
     int page = 1,
+    int? limit,
   }) async {
     try {
       final products = <MedicineProduct>[];
@@ -45,7 +46,7 @@ class ProductsApi {
       do {
         final q = <String, dynamic>{
           'page': currentPage,
-          'per_page': 100,
+          'per_page': limit ?? 100,
           'view': 'listing',
         };
         if (categoryId != null && categoryId > 0) q['category_id'] = categoryId;
@@ -78,6 +79,9 @@ class ProductsApi {
           ),
         );
 
+        if (limit != null && products.length >= limit) {
+          return products.take(limit).toList();
+        }
         if (lastPage == null || list.isEmpty) break;
         currentPage++;
       } while (currentPage <= lastPage);
@@ -103,6 +107,37 @@ class ProductsApi {
       log("Product detail API Error: $e");
       rethrow;
     }
+  }
+}
+
+// ───────────────────────────────────────────────────────────── 2. Categories API
+class CategoriesApi {
+  CategoriesApi._();
+  static final CategoriesApi instance = CategoriesApi._();
+
+  Future<List<CategoryItem>> getCategories() async {
+    final response = await getHttp(Endpoints.categories());
+    if (response.statusCode != 200 || response.data == null) {
+      throw const FormatException('Invalid categories API response');
+    }
+
+    final data = response.data;
+    final List<dynamic> categories;
+    if (data is List) {
+      categories = data;
+    } else if (data is Map) {
+      final payload = data['categories'] ?? data['data'];
+      if (payload is! List) {
+        throw const FormatException('Invalid categories API response');
+      }
+      categories = payload;
+    } else {
+      throw const FormatException('Invalid categories API response');
+    }
+
+    return categories
+        .map((item) => CategoryItem.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
   }
 }
 

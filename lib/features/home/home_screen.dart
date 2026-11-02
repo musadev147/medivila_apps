@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +35,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   Timer? _bannerTimer;
 
   int? _selectedCategoryId;
+  int? _selectedRootCategoryId;
   String _selectedCategoryName = 'Sergical & Ortho Care';
 
   int _productsVisibleLimit = 10;
@@ -43,6 +45,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     super.initState();
     if (getBootstrapRx.dataFetcher.valueOrNull == null) {
       getBootstrapRx.fetchBootstrap();
+    }
+    if (getCategoriesRx.dataFetcher.valueOrNull == null) {
+      getCategoriesRx.fetchCategories();
     }
     if (getProductsRx.dataFetcher.valueOrNull == null) {
       getProductsRx.fetchProducts();
@@ -91,12 +96,41 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   void _onCategorySelected(CategoryItem? cat, String? title) {
     setState(() {
       _selectedCategoryId = cat?.id;
+      _selectedRootCategoryId = cat == null ? null : cat.parentId ?? cat.id;
       _selectedCategoryName = title ?? cat?.displayName ?? 'All Products';
       _productsVisibleLimit = 10;
     });
     getProductsRx.fetchProducts(
       categoryId: cat?.id,
-      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
+      search: _searchCtrl.text.trim().isNotEmpty
+          ? _searchCtrl.text.trim()
+          : null,
+    );
+  }
+
+  List<CategoryItem> _subcategoriesFor(
+    CategoryItem category,
+    List<CategoryItem> categories,
+  ) {
+    final subcategories = <int, CategoryItem>{
+      for (final child in category.children) child.id: child,
+      for (final child in categories)
+        if (child.parentId == category.id) child.id: child,
+    };
+    return subcategories.values.toList();
+  }
+
+  void _selectCategoryFilter(CategoryItem category) {
+    setState(() {
+      _selectedCategoryId = category.id;
+      _selectedCategoryName = category.displayName;
+      _productsVisibleLimit = 10;
+    });
+    getProductsRx.fetchProducts(
+      categoryId: category.id,
+      search: _searchCtrl.text.trim().isNotEmpty
+          ? _searchCtrl.text.trim()
+          : null,
     );
   }
 
@@ -111,8 +145,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
   Future<void> _openWhatsApp() async {
     final cleanPhone = AppConfig.cleanBdPhone(AppConfig.helplinePhone);
+    final rawNumber =
+        cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
     final uri = Uri.parse(
-      'https://wa.me/880$cleanPhone?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
+      'https://wa.me/880$rawNumber?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
     );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -126,9 +162,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
-      drawer: MedivilaDrawer(
-        onSelectCategory: _onCategorySelected,
-      ),
+      drawer: MedivilaDrawer(onSelectCategory: _onCategorySelected),
       body: SafeArea(
         child: Column(
           children: [
@@ -145,7 +179,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 onRefresh: () async {
                   await Future.wait([
                     getBootstrapRx.fetchBootstrap(),
-                    getProductsRx.fetchProducts(categoryId: _selectedCategoryId),
+                    getCategoriesRx.fetchCategories(),
+                    getProductsRx.fetchProducts(
+                      categoryId: _selectedCategoryId,
+                    ),
                     getLabTestsRx.fetchLabTests(),
                     getDoctorsRx.fetchDoctors(),
                   ]);
@@ -153,9 +190,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 child: CustomScrollView(
                   slivers: [
                     // 3. Banner Carousel Slider (Winter Sale / Promos)
-                    SliverToBoxAdapter(
-                      child: _buildBannerCarousel(),
-                    ),
+                    SliverToBoxAdapter(child: _buildBannerCarousel()),
 
                     SliverToBoxAdapter(child: SizedBox(height: 14.h)),
 
@@ -167,31 +202,25 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     SliverToBoxAdapter(child: SizedBox(height: 16.h)),
 
                     // 5. "Especially For You" Section (Image 3)
-                    SliverToBoxAdapter(
-                      child: _buildEspeciallyForYouSection(),
-                    ),
+                    SliverToBoxAdapter(child: _buildEspeciallyForYouSection()),
 
                     SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
                     // 6. "Shop by Category" Section (Image 3)
-                    SliverToBoxAdapter(
-                      child: _buildShopByCategorySection(),
-                    ),
+                    SliverToBoxAdapter(child: _buildShopByCategorySection()),
+
+                    SliverToBoxAdapter(child: _buildSubcategorySelector()),
 
                     SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
                     // 7. Category Products Header (Image 1: Green underline + count)
-                    SliverToBoxAdapter(
-                      child: _buildCategorySectionHeader(),
-                    ),
+                    SliverToBoxAdapter(child: _buildCategorySectionHeader()),
 
                     // 8. 2-Column Product Grid (Image 1)
                     _buildProductGridSliver(),
 
                     // 9. Load More Button (Image 1: "Load More (10 of 22)")
-                    SliverToBoxAdapter(
-                      child: _buildLoadMoreButton(),
-                    ),
+                    SliverToBoxAdapter(child: _buildLoadMoreButton()),
 
                     // Space for bottom clearance above navigation bar
                     SliverToBoxAdapter(child: SizedBox(height: 24.h)),
@@ -343,7 +372,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             ),
             if (_searchCtrl.text.isNotEmpty)
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: Colors.grey,
+                ),
                 onPressed: () {
                   _searchCtrl.clear();
                   _onSearch('');
@@ -467,7 +500,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 child: Center(
                   child: InkWell(
                     onTap: () {
-                      final nextPage = (_currentBannerIndex + 1) % bannerList.length;
+                      final nextPage =
+                          (_currentBannerIndex + 1) % bannerList.length;
                       _bannerPageController.animateToPage(
                         nextPage,
                         duration: const Duration(milliseconds: 300),
@@ -637,7 +671,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 Text(
                   'HOME',
                   style: TextStyle(
-                    fontSize: 10.5.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF64748B),
                   ),
@@ -694,7 +728,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6.r),
@@ -746,13 +783,12 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 5. "Especially For You" Section (Image 3)
+  // ───────────────────────────────────────────────────────── 5. "Especially For You" Section
   Widget _buildEspeciallyForYouSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
+        Center(
           child: Text(
             'Especially For You',
             style: TextStyle(
@@ -762,68 +798,187 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             ),
           ),
         ),
-        SizedBox(height: 10.h),
-        SizedBox(
-          height: 148.h,
-          child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
-            scrollDirection: Axis.horizontal,
-            children: [
-              // Card 1: Prescription (Turquoise gradient)
-              _buildSpecialCard(
-                title: 'Prescription',
-                subtitle: 'Discount',
-                buttonText: 'Upload',
-                icon: Icons.assignment_rounded,
-                iconBgColor: const Color(0xFF0D9488),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFB2EBF2), Color(0xFF80DEEA)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PrescriptionScreen()),
+        SizedBox(height: 12.h),
+        StreamBuilder<List<CategoryItem>>(
+          stream: getCategoriesRx.valueStreamData,
+          builder: (context, snapshot) {
+            final rawCategories = (snapshot.data ?? _defaultCategories)
+                .where((category) => category.parentId == null)
+                .toList();
+
+            // Find HealthCare category or fallback to default
+            CategoryItem? healthCareCat;
+            for (final c in rawCategories) {
+              final n = c.name.toLowerCase();
+              final s = c.slug.toLowerCase();
+              if (n.contains('health') || s.contains('health')) {
+                healthCareCat = c;
+                break;
+              }
+            }
+            healthCareCat ??= (rawCategories.isNotEmpty
+                ? rawCategories.first
+                : _defaultCategories.first);
+
+            // Remaining categories (excluding HealthCare to avoid duplicate)
+            final otherCategories = rawCategories
+                .where((c) =>
+                    c.id != healthCareCat!.id && c.slug != healthCareCat.slug)
+                .toList();
+
+            // Order matching design:
+            // 0: Whats App
+            // 1: Call Now
+            // 2: HealthCare
+            // 3: Upload Prescription
+            // 4+: Other categories
+            final totalCount = 4 + otherCategories.length;
+
+            return SizedBox(
+              height: 185.h,
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                scrollDirection: Axis.horizontal,
+                itemCount: totalCount,
+                separatorBuilder: (context, index) => SizedBox(width: 12.w),
+                itemBuilder: (context, index) {
+                  // 1. Whats App
+                  if (index == 0) {
+                    return _buildSpecialCard(
+                      title: 'Whats App',
+                      subtitle: '5% Discount',
+                      buttonText: 'Call Now',
+                      themeColor: const Color(0xFFD68A2E),
+                      badgeBgColor: const Color(0xFF25D366),
+                      iconWidget: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_rounded,
+                            color: Colors.white,
+                            size: 19.sp,
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 2.h),
+                            child: Icon(
+                              Icons.phone_rounded,
+                              color: const Color(0xFF25D366),
+                              size: 9.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFAF1E4), Color(0xFFD98E32)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      onTap: _openWhatsApp,
+                    );
+                  }
+
+                  // 2. Call Now
+                  if (index == 1) {
+                    return _buildSpecialCard(
+                      title: 'Call Now',
+                      subtitle: '2% Discount',
+                      extraLine: AppConfig.helplinePhone,
+                      buttonText: 'Call Now',
+                      themeColor: const Color(0xFFE8751A),
+                      badgeBgColor: Colors.white,
+                      iconWidget: Icon(
+                        Icons.phone_rounded,
+                        color: const Color(0xFF10B981),
+                        size: 19.sp,
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFDF0E2), Color(0xFFE8751A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      onTap: () => _makeCall(AppConfig.helplinePhone),
+                    );
+                  }
+
+                  // 3. HealthCare
+                  if (index == 2) {
+                    return _buildSpecialCard(
+                      title: healthCareCat!.displayName,
+                      subtitle: 'Upto 60% Discount',
+                      buttonText: 'Click Here',
+                      themeColor: const Color(0xFF0891B2),
+                      badgeBgColor: const Color(0xFF0891B2),
+                      iconWidget: Icon(
+                        Icons.volunteer_activism_rounded,
+                        color: Colors.white,
+                        size: 19.sp,
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      onTap: () => _onCategorySelected(
+                        healthCareCat,
+                        healthCareCat!.displayName,
+                      ),
+                    );
+                  }
+
+                  // 4. Upload Prescription
+                  if (index == 3) {
+                    return _buildSpecialCard(
+                      title: 'Upload Prescription',
+                      subtitle: '7% Discount',
+                      buttonText: 'Upload',
+                      themeColor: const Color(0xFF0891B2),
+                      badgeBgColor: const Color(0xFF0891B2),
+                      iconWidget: Icon(
+                        Icons.assignment_rounded,
+                        color: Colors.white,
+                        size: 19.sp,
+                      ),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrescriptionScreen(),
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  // 5+. Other Categories
+                  final category = otherCategories[index - 4];
+                  return _buildSpecialCard(
+                    title: category.displayName,
+                    subtitle: 'Upto 60% Discount',
+                    buttonText: 'Click Here',
+                    themeColor: const Color(0xFF0891B2),
+                    badgeBgColor: const Color(0xFF0891B2),
+                    iconWidget: Icon(
+                      Icons.volunteer_activism_rounded,
+                      color: Colors.white,
+                      size: 19.sp,
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () =>
+                        _onCategorySelected(category, category.displayName),
                   );
                 },
               ),
-
-              SizedBox(width: 12.w),
-
-              // Card 2: Whats App (Golden/Tan gradient)
-              _buildSpecialCard(
-                title: 'Whats App',
-                subtitle: '5% Discount',
-                buttonText: 'Call Now',
-                icon: Icons.chat_rounded,
-                iconBgColor: const Color(0xFF25D366),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF7E4CB), Color(0xFFE4BE8F)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                onTap: _openWhatsApp,
-              ),
-
-              SizedBox(width: 12.w),
-
-              // Card 3: Call Now (Peach/Salmon gradient)
-              _buildSpecialCard(
-                title: 'Call Now',
-                subtitle: '2% Discount\n+8801625491153',
-                buttonText: 'Call Now',
-                icon: Icons.phone_in_talk_rounded,
-                iconBgColor: const Color(0xFFEA580C),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFED7AA), Color(0xFFFDBA74)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                onTap: () => _makeCall(AppConfig.helplinePhone),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ],
     );
@@ -833,24 +988,26 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     required String title,
     required String subtitle,
     required String buttonText,
-    required IconData icon,
-    required Color iconBgColor,
+    required Color themeColor,
+    required Color badgeBgColor,
+    required Widget iconWidget,
     required LinearGradient gradient,
     required VoidCallback onTap,
+    String? extraLine,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16.r),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        width: 130.w,
-        padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 10.h),
+        width: 230.w,
+        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
         decoration: BoxDecoration(
           gradient: gradient,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(20.r),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
+              blurRadius: 8,
               offset: const Offset(0, 3),
             ),
           ],
@@ -862,63 +1019,101 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             // Top Row: Title + Circular Icon Badge
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 12.5.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 4.h, right: 6.w),
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.all(5.w),
+                  width: 44.w,
+                  height: 44.w,
                   decoration: BoxDecoration(
-                    color: iconBgColor,
+                    color: Colors.white.withOpacity(0.55),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: Colors.white, size: 14.sp),
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 34.w,
+                    height: 34.w,
+                    decoration: BoxDecoration(
+                      color: badgeBgColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: iconWidget,
+                  ),
                 ),
               ],
             ),
 
-            // Middle Subtitle
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 10.5.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF334155),
-                height: 1.2,
-              ),
+            // Middle Subtitle & Extra Info
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                    height: 1.25,
+                  ),
+                ),
+                if (extraLine != null) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    extraLine,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ],
             ),
 
             // Bottom White Pill Button
-            Center(
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 5.h),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 3,
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  buttonText,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
                   ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                buttonText,
+                style: TextStyle(
+                  fontSize: 11.5.sp,
+                  fontWeight: FontWeight.w700,
+                  color: themeColor,
                 ),
               ),
             ),
@@ -945,10 +1140,12 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
           ),
         ),
         SizedBox(height: 10.h),
-        StreamBuilder<BootstrapData>(
-          stream: getBootstrapRx.valueStreamData,
+        StreamBuilder<List<CategoryItem>>(
+          stream: getCategoriesRx.valueStreamData,
           builder: (context, snapshot) {
-            final categories = snapshot.data?.categories ?? _defaultCategories;
+            final categories = (snapshot.data ?? _defaultCategories)
+                .where((category) => category.parentId == null)
+                .toList();
             return SizedBox(
               height: 112.h,
               child: ListView.separated(
@@ -958,7 +1155,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 separatorBuilder: (_, __) => SizedBox(width: 12.w),
                 itemBuilder: (context, index) {
                   final cat = categories[index];
-                  final isSelected = _selectedCategoryId == cat.id;
+                  final isSelected = _selectedRootCategoryId == cat.id;
 
                   return InkWell(
                     onTap: () => _onCategorySelected(cat, cat.displayName),
@@ -1003,7 +1200,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 10.5.sp,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                               color: isSelected
                                   ? AppColors.primary
                                   : const Color(0xFF1E293B),
@@ -1020,6 +1219,54 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSubcategorySelector() {
+    return StreamBuilder<List<CategoryItem>>(
+      stream: getCategoriesRx.valueStreamData,
+      builder: (context, snapshot) {
+        final categories = snapshot.data ?? _defaultCategories;
+        CategoryItem? selectedRoot;
+        for (final category in categories) {
+          if (category.id == _selectedRootCategoryId) {
+            selectedRoot = category;
+            break;
+          }
+        }
+        if (selectedRoot == null) return const SizedBox.shrink();
+
+        final subcategories = _subcategoriesFor(selectedRoot, categories);
+        if (subcategories.isEmpty) return const SizedBox.shrink();
+
+        return SizedBox(
+          height: 48.h,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
+            scrollDirection: Axis.horizontal,
+            itemCount: subcategories.length + 1,
+            separatorBuilder: (_, __) => SizedBox(width: 8.w),
+            itemBuilder: (context, index) {
+              final category = index == 0
+                  ? selectedRoot!
+                  : subcategories[index - 1];
+              final isSelected = _selectedCategoryId == category.id;
+              return ChoiceChip(
+                label: Text(category.displayName),
+                selected: isSelected,
+                selectedColor: AppColors.primary,
+                backgroundColor: const Color(0xFFF1F5F9),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF334155),
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+                onSelected: (_) => _selectCategoryFilter(category),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1084,7 +1331,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       builder: (context, snapshot) {
         final allProducts = snapshot.data ?? _fallbackProducts;
 
-        if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            snapshot.data == null) {
           return const SliverToBoxAdapter(
             child: SizedBox(
               height: 150,
@@ -1121,13 +1369,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               crossAxisSpacing: 10.w,
               mainAxisSpacing: 12.h,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final product = allProducts[index];
-                return MedivilaProductCard(product: product);
-              },
-              childCount: visibleCount,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final product = allProducts[index];
+              return MedivilaProductCard(product: product);
+            }, childCount: visibleCount),
           ),
         );
       },
@@ -1208,7 +1453,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       name: 'HealthCare',
       bnName: 'HealthCare',
       slug: 'healthcare',
-      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200',
+      image:
+          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200',
     ),
     CategoryItem(
       id: 2,
@@ -1222,21 +1468,24 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       name: 'Sergical & Ortho Care',
       bnName: 'Sergical & Ortho Care',
       slug: 'sergical-ortho-care',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=200',
+      image:
+          'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=200',
     ),
     CategoryItem(
       id: 4,
       name: 'Lab Test',
       bnName: 'Lab Test',
       slug: 'lab-test',
-      image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=200',
+      image:
+          'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=200',
     ),
     CategoryItem(
       id: 5,
       name: 'Natural & Nutritional',
       bnName: 'Natural & Nutritional',
       slug: 'natural-nutritional',
-      image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=200',
+      image:
+          'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=200',
     ),
   ];
 
@@ -1248,7 +1497,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       name: 'Mesh Nebulizer Portable With Battery',
       price: 1050.0,
       discountPrice: 600.0,
-      images: ['https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300'],
+      images: [
+        'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300',
+      ],
     ),
     MedicineProduct(
       id: 102,
@@ -1256,7 +1507,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       name: 'T&H Compressor Nebulizer(HS-308)',
       price: 4680.0,
       discountPrice: 2500.0,
-      images: ['https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=300'],
+      images: [
+        'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=300',
+      ],
     ),
   ];
 }

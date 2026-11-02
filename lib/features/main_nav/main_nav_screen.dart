@@ -21,6 +21,9 @@ class MainNavScreen extends StatefulWidget {
 }
 
 class _MainNavScreenState extends State<MainNavScreen> {
+  static const _navigationColor = Color(0xFF16A34A);
+  static const _navigationInactiveColor = Color(0xFFD1FAE5);
+
   late int _currentIndex;
 
   final List<Widget> _screens = const [
@@ -62,10 +65,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
         ],
       ),
 
-      // Dark Navy Bottom Navigation Bar (Exact Match to Images 1, 2, 3)
+      // Green bottom navigation matching the website navigation bar.
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0B2240), // Dark Navy Blue
+          color: _navigationColor,
           boxShadow: [
             BoxShadow(
               color: Colors.black26,
@@ -95,8 +98,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
-    const activeColor = Color(0xFF009640);
-    const inactiveColor = Color(0xFF8DA4C4);
 
     return Expanded(
       child: InkWell(
@@ -108,7 +109,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               height: 3.h,
               width: 32.w,
               decoration: BoxDecoration(
-                color: isSelected ? activeColor : Colors.transparent,
+                color: isSelected ? Colors.white : Colors.transparent,
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(3.r)),
               ),
             ),
@@ -117,7 +118,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
             Icon(
               icon,
-              color: isSelected ? Colors.white : inactiveColor,
+              color: isSelected ? Colors.white : _navigationInactiveColor,
               size: 22.sp,
             ),
 
@@ -130,7 +131,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                  color: isSelected ? Colors.white : inactiveColor,
+                  color: isSelected ? Colors.white : _navigationInactiveColor,
                 ),
               ),
             ),
@@ -144,8 +145,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   Widget _buildCartItem(int index, int count) {
     final isSelected = _currentIndex == index;
-    const activeColor = Color(0xFF009640);
-    const inactiveColor = Color(0xFF8DA4C4);
 
     return Expanded(
       child: InkWell(
@@ -156,7 +155,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               height: 3.h,
               width: 32.w,
               decoration: BoxDecoration(
-                color: isSelected ? activeColor : Colors.transparent,
+                color: isSelected ? Colors.white : Colors.transparent,
                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(3.r)),
               ),
             ),
@@ -168,7 +167,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               children: [
                 Icon(
                   Icons.shopping_cart_rounded,
-                  color: isSelected ? Colors.white : inactiveColor,
+                  color: isSelected ? Colors.white : _navigationInactiveColor,
                   size: 22.sp,
                 ),
                 if (count > 0)
@@ -206,7 +205,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                  color: isSelected ? Colors.white : inactiveColor,
+                  color: isSelected ? Colors.white : _navigationInactiveColor,
                 ),
               ),
             ),

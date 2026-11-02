@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
+import 'app_toast.dart';
 import '../common_wigdets/auth_bottom_sheet.dart';
 import '../common_wigdets/brand_logo.dart';
 import '../constants/app_colors.dart';
@@ -14,10 +15,7 @@ import '../networks/api_access.dart';
 import '../provider/auth_provider.dart';
 
 class MedivilaDrawer extends StatefulWidget {
-  const MedivilaDrawer({
-    super.key,
-    this.onSelectCategory,
-  });
+  const MedivilaDrawer({super.key, this.onSelectCategory});
 
   final void Function(CategoryItem? category, String? title)? onSelectCategory;
 
@@ -36,6 +34,88 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
         _expandedCategoryIds.add(id);
       }
     });
+  }
+
+  Future<void> _confirmLogout(AuthProvider auth) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFFDC2626),
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'লগআউট',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে লগআউট করতে চান?',
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: const Color(0xFF475569),
+          ),
+        ),
+        actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 14.h),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'বাতিল',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'লগআউট',
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      Navigator.pop(context); // close drawer
+      await auth.logout();
+      AppToast.success('সফলভাবে লগআউট হয়েছে');
+    }
   }
 
   @override
@@ -119,8 +199,8 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                         SizedBox(height: 2.h),
                         Text(
                           auth.loggedIn
-                            ? 'পয়েন্ট: ${user?.points ?? 0}'
-                            : 'লগইন করলেই পাবেন বোনাস পয়েন্ট',
+                              ? 'পয়েন্ট: ${user?.points ?? 0}'
+                              : 'লগইন করলেই পাবেন বোনাস পয়েন্ট',
                           style: TextStyle(
                             fontSize: 10.5.sp,
                             color: const Color(0xFF64748B),
@@ -138,7 +218,11 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                         Navigator.pop(context);
                         showAuthModal(context);
                       },
-                      icon: Icon(Icons.person, size: 14.sp, color: Colors.white),
+                      icon: Icon(
+                        Icons.person,
+                        size: 14.sp,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         'Login',
                         style: TextStyle(
@@ -150,7 +234,10 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 8.h,
+                        ),
                         minimumSize: Size.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.r),
@@ -158,29 +245,65 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                       ),
                     )
                   else
-                    InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          'প্রোফাইল',
-                          style: TextStyle(
-                            fontSize: 11.5.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10.w,
+                              vertical: 6.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Text(
+                              'প্রোফাইল',
+                              style: TextStyle(
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        SizedBox(width: 6.w),
+                        Tooltip(
+                          message: 'লগআউট',
+                          child: InkWell(
+                            onTap: () => _confirmLogout(auth),
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 6.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF2F2),
+                                borderRadius: BorderRadius.circular(8.r),
+                                border: Border.all(
+                                  color: const Color(0xFFFECACA),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.logout_rounded,
+                                size: 16,
+                                color: Color(0xFFDC2626),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -216,7 +339,10 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                     },
                     borderRadius: BorderRadius.circular(12.r),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 10.h,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8F8EE),
                         borderRadius: BorderRadius.circular(12.r),
@@ -254,7 +380,10 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                             ),
                           ),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 3.h,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFC7F3D6),
                               borderRadius: BorderRadius.circular(10.r),
@@ -283,7 +412,9 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const DoctorsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const DoctorsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -296,7 +427,9 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const LabTestsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const LabTestsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -309,26 +442,72 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const WholesaleScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const WholesaleScreen(),
+                        ),
                       );
                     },
                   ),
 
                   const Divider(height: 16, color: Color(0xFFF1F5F9)),
 
-                  // Dynamic Categories from Bootstrap
-                  StreamBuilder<BootstrapData>(
-                    stream: getBootstrapRx.valueStreamData,
+                  // Dynamic parent categories from the categories endpoint.
+                  StreamBuilder<List<CategoryItem>>(
+                    stream: getCategoriesRx.valueStreamData,
                     builder: (context, snapshot) {
-                      final categories = snapshot.data?.categories ?? _defaultCategories;
+                      final categories = (snapshot.data ?? _defaultCategories)
+                          .where((category) => category.parentId == null)
+                          .toList();
                       return Column(
-                        children: categories.map((cat) => _buildCategoryTile(cat)).toList(),
+                        children: categories
+                            .map((cat) => _buildCategoryTile(cat))
+                            .toList(),
                       );
                     },
                   ),
                 ],
               ),
             ),
+
+            // Persistent Bottom Logout Option (when logged in)
+            if (auth.loggedIn) ...[
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              Padding(
+                padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 10.h),
+                child: InkWell(
+                  onTap: () => _confirmLogout(auth),
+                  borderRadius: BorderRadius.circular(10.r),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(color: const Color(0xFFFECACA)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.logout_rounded,
+                          color: Color(0xFFDC2626),
+                          size: 18,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'লগআউট করুন (Log Out)',
+                          style: TextStyle(
+                            fontSize: 12.5.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -439,7 +618,10 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                   },
                   borderRadius: BorderRadius.circular(8.r),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 6.w),
+                    padding: EdgeInsets.symmetric(
+                      vertical: 6.h,
+                      horizontal: 6.w,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -461,10 +643,7 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                             ),
                           ),
                         ),
-                        const Text(
-                          '🔥',
-                          style: TextStyle(fontSize: 12),
-                        ),
+                        const Text('🔥', style: TextStyle(fontSize: 12)),
                       ],
                     ),
                   ),
@@ -506,22 +685,56 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
   }
 
   static final List<CategoryItem> _defaultCategories = [
-    CategoryItem(id: 1, name: 'HealthCare', bnName: 'HealthCare', slug: 'healthcare'),
+    CategoryItem(
+      id: 1,
+      name: 'HealthCare',
+      bnName: 'HealthCare',
+      slug: 'healthcare',
+    ),
     CategoryItem(
       id: 2,
       name: 'Medical Equipments',
       bnName: 'Medical Equipments',
       slug: 'medical-equipments',
       children: [
-        CategoryItem(id: 201, name: 'Diagnostic Equipments', bnName: 'Diagnostic Equipments', slug: 'diagnostic-equipments'),
-        CategoryItem(id: 202, name: 'Abbott Medical Device', bnName: 'Abbott Medical Device', slug: 'abbott-medical-device'),
+        CategoryItem(
+          id: 201,
+          name: 'Diagnostic Equipments',
+          bnName: 'Diagnostic Equipments',
+          slug: 'diagnostic-equipments',
+        ),
+        CategoryItem(
+          id: 202,
+          name: 'Abbott Medical Device',
+          bnName: 'Abbott Medical Device',
+          slug: 'abbott-medical-device',
+        ),
       ],
     ),
-    CategoryItem(id: 3, name: 'Baby & Mom Care', bnName: 'Baby & Mom Care', slug: 'baby-mom-care'),
-    CategoryItem(id: 4, name: 'Personal & Privacy care', bnName: 'Personal & Privacy care', slug: 'personal-privacy-care'),
-    CategoryItem(id: 5, name: 'Sergical & Ortho Care', bnName: 'Sergical & Ortho Care', slug: 'sergical-ortho-care'),
-    CategoryItem(id: 6, name: 'Beauty & Lifestyles', bnName: 'Beauty & Lifestyles', slug: 'beauty-lifestyles'),
+    CategoryItem(
+      id: 3,
+      name: 'Baby & Mom Care',
+      bnName: 'Baby & Mom Care',
+      slug: 'baby-mom-care',
+    ),
+    CategoryItem(
+      id: 4,
+      name: 'Personal & Privacy care',
+      bnName: 'Personal & Privacy care',
+      slug: 'personal-privacy-care',
+    ),
+    CategoryItem(
+      id: 5,
+      name: 'Sergical & Ortho Care',
+      bnName: 'Sergical & Ortho Care',
+      slug: 'sergical-ortho-care',
+    ),
+    CategoryItem(
+      id: 6,
+      name: 'Beauty & Lifestyles',
+      bnName: 'Beauty & Lifestyles',
+      slug: 'beauty-lifestyles',
+    ),
     CategoryItem(id: 7, name: 'Lab Test', bnName: 'Lab Test', slug: 'lab-test'),
   ];
 }
-

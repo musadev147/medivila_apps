@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:dio/dio.dart';
 
 import '../../common_wigdets/app_toast.dart';
+import '../../common_wigdets/live_chat_button.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_config.dart';
 import '../../models/medivila_models.dart';
@@ -342,215 +343,215 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Doctor Avatar with Online/Available Badge
-              _buildDoctorAvatar(doc),
-              SizedBox(width: 12.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Doctor Avatar with Online/Available Badge
+                _buildDoctorAvatar(doc),
+                SizedBox(width: 12.w),
 
-              // 2. Doctor Information
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            doc.formattedName,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F172A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              color: Color(0xFFF59E0B),
-                              size: 16,
-                            ),
-                            Text(
-                              ' ${doc.rating}',
+                // 2. Doctor Information
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              doc.formattedName,
                               style: TextStyle(
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w800,
                                 color: const Color(0xFF0F172A),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      doc.degrees,
-                      style: TextStyle(
-                        fontSize: 10.5.sp,
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w500,
+                          ),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                color: Color(0xFFF59E0B),
+                                size: 16,
+                              ),
+                              Text(
+                                ' ${doc.rating}',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4.h),
-                    // Speciality Pill Tag
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 7.w,
-                        vertical: 2.5.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        doc.displaySpeciality,
+                      SizedBox(height: 2.h),
+                      Text(
+                        doc.degrees,
                         style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          fontSize: 10.5.sp,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w500,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    SizedBox(height: 4.h),
-                    // Experience & Workplace
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.verified_outlined,
-                          size: 12.sp,
-                          color: const Color(0xFF0284C7),
+                      SizedBox(height: 4.h),
+                      // Speciality Pill Tag
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 7.w,
+                          vertical: 2.5.h,
                         ),
-                        SizedBox(width: 3.w),
-                        Text(
-                          doc.displayExperience,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          doc.displaySpeciality,
                           style: TextStyle(
-                            fontSize: 9.5.sp,
-                            color: const Color(0xFF475569),
-                            fontWeight: FontWeight.w600,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
                           ),
                         ),
-                        SizedBox(width: 6.w),
-                        Expanded(
-                          child: Text(
-                            doc.displayWorkplace,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4.h),
+                      // Experience & Workplace
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.verified_outlined,
+                            size: 12.sp,
+                            color: const Color(0xFF0284C7),
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            doc.displayExperience,
                             style: TextStyle(
                               fontSize: 9.5.sp,
-                              color: AppColors.textSoft,
+                              color: const Color(0xFF475569),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              doc.displayWorkplace,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 9.5.sp,
+                                color: AppColors.textSoft,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 3.h),
+                      // Available Timing
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 11.sp,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            doc.displayAvailableTime,
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const Divider(height: 18, color: Color(0xFFF1F5F9)),
+
+            // 3. Consultation Fee & Calendar Booking Action
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'পরামর্শ ফি',
+                      style: TextStyle(
+                        fontSize: 9.5.sp,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                    SizedBox(height: 3.h),
-                    // Available Timing
                     Row(
                       children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 11.sp,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                        SizedBox(width: 3.w),
                         Text(
-                          doc.displayAvailableTime,
+                          '৳ ${doc.effectiveFee.toStringAsFixed(0)}',
                           style: TextStyle(
-                            fontSize: 9.sp,
-                            color: const Color(0xFF64748B),
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF009640),
                           ),
                         ),
+                        if (doc.discountedFee != null &&
+                            doc.discountedFee! > 0 &&
+                            doc.consultationFee > doc.discountedFee!) ...[
+                          SizedBox(width: 5.w),
+                          Text(
+                            '৳${doc.consultationFee.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 10.5.sp,
+                              decoration: TextDecoration.lineThrough,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-
-          const Divider(height: 18, color: Color(0xFFF1F5F9)),
-
-          // 3. Consultation Fee & Calendar Booking Action
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'পরামর্শ ফি',
+                ElevatedButton.icon(
+                  onPressed: () => _openBookingModal(doc),
+                  icon: Icon(Icons.calendar_month_rounded, size: 15.sp),
+                  label: Text(
+                    'অ্যাপয়েন্টমেন্ট নিন',
                     style: TextStyle(
-                      fontSize: 9.5.sp,
-                      color: AppColors.textMuted,
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        '৳ ${doc.effectiveFee.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF009640),
-                        ),
-                      ),
-                      if (doc.discountedFee != null &&
-                          doc.discountedFee! > 0 &&
-                          doc.consultationFee > doc.discountedFee!) ...[
-                        SizedBox(width: 5.w),
-                        Text(
-                          '৳${doc.consultationFee.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 10.5.sp,
-                            decoration: TextDecoration.lineThrough,
-                            color: const Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _openBookingModal(doc),
-                icon: Icon(Icons.calendar_month_rounded, size: 15.sp),
-                label: Text(
-                  'অ্যাপয়েন্টমেন্ট নিন',
-                  style: TextStyle(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w700,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 8.h,
+                    ),
+                    minimumSize: Size.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 8.h,
-                  ),
-                  minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -740,6 +741,7 @@ class _DoctorBookingSheetState extends State<_DoctorBookingSheet> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),
@@ -846,7 +848,8 @@ class _DoctorBookingSheetState extends State<_DoctorBookingSheet> {
               width: double.infinity,
               height: 44.h,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () =>
+                    LiveChatFloatingButton.showJoinOptions(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
@@ -854,7 +857,7 @@ class _DoctorBookingSheetState extends State<_DoctorBookingSheet> {
                   ),
                 ),
                 child: const Text(
-                  'ঠিক আছে, ধন্যবাদ',
+                  'Join',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

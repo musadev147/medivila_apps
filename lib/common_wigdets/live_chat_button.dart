@@ -9,6 +9,76 @@ import '../constants/app_config.dart';
 class LiveChatFloatingButton extends StatelessWidget {
   const LiveChatFloatingButton({super.key});
 
+  static Future<void> showJoinOptions(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+        ),
+        padding: EdgeInsets.fromLTRB(18.w, 12.h, 18.w, 24.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            Text(
+              'যোগাযোগের মাধ্যম বেছে নিন',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            _SupportOptionTile(
+              icon: Icons.chat_rounded,
+              iconColor: const Color(0xFF25D366),
+              title: 'WhatsApp',
+              subtitle: '+8801625491153',
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _openJoinLink(
+                  Uri.parse('https://wa.me/8801625491153'),
+                  'WhatsApp',
+                );
+              },
+            ),
+            SizedBox(height: 10.h),
+            _SupportOptionTile(
+              icon: Icons.chat_bubble_rounded,
+              iconColor: const Color(0xFF00A896),
+              title: 'IMO',
+              subtitle: '+8801625491153',
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _openJoinLink(
+                  Uri.parse('imo://chat?phone=8801625491153'),
+                  'IMO',
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _openJoinLink(Uri uri, String appName) async {
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      AppToast.error('$appName ওপেন করা যাচ্ছে না');
+    }
+  }
+
   static Future<void> showSupportOptions(BuildContext context) async {
     showModalBottomSheet(
       context: context,
@@ -80,7 +150,9 @@ class LiveChatFloatingButton extends StatelessWidget {
               subtitle: 'মেসেজ দিন ও সাথে সাথে পরামর্শ নিন',
               onTap: () async {
                 Navigator.pop(ctx);
-                final cleanPhone = AppConfig.cleanBdPhone(AppConfig.helplinePhone);
+                final cleanPhone = AppConfig.cleanBdPhone(
+                  AppConfig.helplinePhone,
+                );
                 final uri = Uri.parse(
                   'https://wa.me/880$cleanPhone?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
                 );
@@ -127,10 +199,7 @@ class LiveChatFloatingButton extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              border: Border.all(
-                color: const Color(0xFF009640),
-                width: 2.2,
-              ),
+              border: Border.all(color: const Color(0xFF009640), width: 2.2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.12),
@@ -259,4 +328,3 @@ class _SupportOptionTile extends StatelessWidget {
     );
   }
 }
-

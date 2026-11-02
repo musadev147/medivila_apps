@@ -1,4 +1,5 @@
 import 'package:rxdart/subjects.dart';
+
 import '../models/medivila_models.dart';
 import 'medivila_rx.dart';
 
@@ -10,6 +11,11 @@ final GetBootstrapRx getBootstrapRx = GetBootstrapRx(
 final GetProductsRx getProductsRx = GetProductsRx(
   empty: [],
   dataFetcher: BehaviorSubject<List<MedicineProduct>>(),
+);
+
+final GetCategoriesRx getCategoriesRx = GetCategoriesRx(
+  empty: [],
+  dataFetcher: BehaviorSubject<List<CategoryItem>>(),
 );
 
 final GetDoctorsRx getDoctorsRx = GetDoctorsRx(

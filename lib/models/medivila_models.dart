@@ -1,4 +1,5 @@
 import '../constants/app_config.dart';
+import '../helpers/format_utils.dart';
 
 // ───────────────────────────────────────────────────────────── 1. Bootstrap
 class BootstrapResponse {
@@ -70,6 +71,7 @@ class CategoryItem {
   final String? bnName;
   final String slug;
   final String? image;
+  final int? parentId;
   final List<CategoryItem> children;
 
   CategoryItem({
@@ -78,6 +80,7 @@ class CategoryItem {
     this.bnName,
     required this.slug,
     this.image,
+    this.parentId,
     this.children = const [],
   });
 
@@ -85,15 +88,22 @@ class CategoryItem {
       (bnName != null && bnName!.isNotEmpty) ? bnName! : name;
   String get imageUrl => AppConfig.resolveImageUrl(image);
 
-  factory CategoryItem.fromJson(Map<String, dynamic> json) {
+  factory CategoryItem.fromJson(Map<String, dynamic> json, {int? parentId}) {
+    final id = int.tryParse(json['id']?.toString() ?? '0') ?? 0;
     return CategoryItem(
-      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: id,
       name: json['name']?.toString() ?? '',
       bnName: json['bn_name']?.toString(),
       slug: json['slug']?.toString() ?? '',
       image: json['image']?.toString(),
+      parentId: int.tryParse(json['parent_id']?.toString() ?? '') ?? parentId,
       children: (json['children'] as List? ?? [])
-          .map((e) => CategoryItem.fromJson(Map<String, dynamic>.from(e)))
+          .map(
+            (e) => CategoryItem.fromJson(
+              Map<String, dynamic>.from(e),
+              parentId: id,
+            ),
+          )
           .toList(),
     );
   }
@@ -267,6 +277,13 @@ class MedicineProduct {
       images.isNotEmpty ? images.first : AppConfig.defaultImageFallback;
 
   factory MedicineProduct.fromJson(Map<String, dynamic> json) {
+    final homepage = json['homepage'];
+    final homepageDescription = homepage is Map
+        ? homepage['description'] ?? homepage['paragraph'] ?? homepage['headline']
+        : homepage;
+    final rawDescription =
+        homepageDescription ?? json['description'] ?? json['paragraph'];
+
     final rawImages = json['images'] as List? ?? [];
     final imageList = <String>[];
     for (final item in rawImages) {
@@ -313,8 +330,9 @@ class MedicineProduct {
       manufacturer:
           json['manufacturer']?.toString() ?? json['brand_name']?.toString(),
       dosageForm: json['dosage_form']?.toString() ?? json['unit']?.toString(),
-      description:
-          json['homepage']?.toString() ?? json['description']?.toString(),
+      description: rawDescription == null
+          ? null
+          : stripHtml(rawDescription.toString()),
       images: imageList,
       sizes: sizeList,
       bulkDiscounts: bulkList,

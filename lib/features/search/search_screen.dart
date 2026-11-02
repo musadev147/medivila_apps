@@ -6,7 +6,6 @@ import '../../constants/app_colors.dart';
 import '../../models/medivila_models.dart';
 import '../../networks/api_access.dart';
 import '../doctors/doctor_booking_screen.dart';
-import '../doctors/doctors_screen.dart';
 import '../lab_tests/lab_tests_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -114,7 +113,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   if (_searchCtrl.text.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
                       onPressed: () {
                         _searchCtrl.clear();
                         _executeSearch('');
@@ -165,9 +168,7 @@ class _SearchScreenState extends State<SearchScreen> {
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
           // Results View
-          Expanded(
-            child: _buildResultsView(),
-          ),
+          Expanded(child: _buildResultsView()),
         ],
       ),
     );
@@ -182,7 +183,9 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFE8F5E9) : const Color(0xFFF8FAFC),
+            color: isSelected
+                ? const Color(0xFFE8F5E9)
+                : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(8.r),
             border: Border.all(
               color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
@@ -251,13 +254,52 @@ class _SearchScreenState extends State<SearchScreen> {
             itemBuilder: (context, index) {
               final t = tests[index];
               return ListTile(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12.w,
+                  vertical: 4.h,
+                ),
+                minLeadingWidth: 42.w,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.r),
                   side: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
-                leading: const Icon(Icons.biotech_rounded, color: AppColors.primary),
-                title: Text(t.name, style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
-                subtitle: Text('৳${t.discountedPrice.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: Container(
+                    width: 40.w,
+                    height: 40.w,
+                    color: const Color(0xFFE8F5E9),
+                    child: t.image != null && t.image!.trim().isNotEmpty
+                        ? Image.network(
+                            t.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Icon(
+                              Icons.biotech_rounded,
+                              color: AppColors.primary,
+                              size: 22.sp,
+                            ),
+                          )
+                        : Icon(
+                            Icons.biotech_rounded,
+                            color: AppColors.primary,
+                            size: 22.sp,
+                          ),
+                  ),
+                ),
+                title: Text(
+                  t.name,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  '৳${t.discountedPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                 onTap: () {
                   Navigator.push(
@@ -292,11 +334,39 @@ class _SearchScreenState extends State<SearchScreen> {
                   side: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 leading: CircleAvatar(
+                  radius: 22.r,
                   backgroundColor: const Color(0xFFE8F5E9),
-                  child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: 44.w,
+                      height: 44.w,
+                      child: d.avatar != null && d.avatar!.trim().isNotEmpty
+                          ? Image.network(
+                              d.avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.person_rounded,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              color: AppColors.primary,
+                            ),
+                    ),
+                  ),
                 ),
-                title: Text(d.name, style: TextStyle(fontSize: 13.5.sp, fontWeight: FontWeight.bold)),
-                subtitle: Text(d.specialityTitle, style: const TextStyle(fontSize: 11.5)),
+                title: Text(
+                  d.name,
+                  style: TextStyle(
+                    fontSize: 13.5.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  d.specialityTitle,
+                  style: const TextStyle(fontSize: 11.5),
+                ),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                 onTap: () {
                   Navigator.push(
@@ -319,7 +389,11 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off_rounded, size: 48.sp, color: const Color(0xFF94A3B8)),
+          Icon(
+            Icons.search_off_rounded,
+            size: 48.sp,
+            color: const Color(0xFF94A3B8),
+          ),
           SizedBox(height: 10.h),
           Text(
             msg,

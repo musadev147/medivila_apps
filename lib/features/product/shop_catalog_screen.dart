@@ -21,6 +21,9 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
   @override
   void initState() {
     super.initState();
+    if (getCategoriesRx.dataFetcher.valueOrNull == null) {
+      getCategoriesRx.fetchCategories();
+    }
     if (getProductsRx.dataFetcher.valueOrNull == null) {
       getProductsRx.fetchProducts();
     }
@@ -66,10 +69,7 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(
-                  color: const Color(0xFFD81B60),
-                  width: 1.5,
-                ),
+                border: Border.all(color: const Color(0xFFD81B60), width: 1.5),
               ),
               child: Row(
                 children: [
@@ -105,7 +105,11 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                   ),
                   if (_searchCtrl.text.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                       onPressed: () {
                         _searchCtrl.clear();
                         _onSearch('');
@@ -140,10 +144,12 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
           ),
 
           // Category Filter Chips
-          StreamBuilder<BootstrapData>(
-            stream: getBootstrapRx.valueStreamData,
+          StreamBuilder<List<CategoryItem>>(
+            stream: getCategoriesRx.valueStreamData,
             builder: (context, snapshot) {
-              final categories = snapshot.data?.categories ?? [];
+              final categories = (snapshot.data ?? [])
+                  .where((category) => category.parentId == null)
+                  .toList();
               if (categories.isEmpty) return const SizedBox.shrink();
 
               return Container(
@@ -158,11 +164,16 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                     if (index == 0) {
                       final isSelected = _selectedCategoryId == null;
                       return ChoiceChip(
-                        label: Text('All Products', style: TextStyle(fontSize: 12.sp)),
+                        label: Text(
+                          'All Products',
+                          style: TextStyle(fontSize: 12.sp),
+                        ),
                         selected: isSelected,
                         selectedColor: AppColors.primary,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : const Color(0xFF334155),
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF334155),
                           fontWeight: FontWeight.w600,
                         ),
                         backgroundColor: const Color(0xFFF1F5F9),
@@ -175,11 +186,16 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                     final cat = categories[index - 1];
                     final isSelected = _selectedCategoryId == cat.id;
                     return ChoiceChip(
-                      label: Text(cat.displayName, style: TextStyle(fontSize: 12.sp)),
+                      label: Text(
+                        cat.displayName,
+                        style: TextStyle(fontSize: 12.sp),
+                      ),
                       selected: isSelected,
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF334155),
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF334155),
                         fontWeight: FontWeight.w600,
                       ),
                       backgroundColor: const Color(0xFFF1F5F9),
@@ -238,7 +254,10 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                     : _productsVisibleLimit;
 
                 return ListView(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 8.h,
+                  ),
                   children: [
                     GridView.builder(
                       shrinkWrap: true,
