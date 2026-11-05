@@ -521,18 +521,12 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         height: 48.h,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              Color(0xFFF9FBFF),
-              Color(0xFFEFF6FF),
-            ],
+            colors: [Color(0xFFF9FBFF), Color(0xFFEFF6FF)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(
-            color: const Color(0xFF4A90E2),
-            width: 1.6,
-          ),
+          border: Border.all(color: const Color(0xFF4A90E2), width: 1.6),
         ),
         child: Row(
           children: [
@@ -1335,16 +1329,21 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             }
 
             final rootCategories = sourceList
-                .where((category) =>
-                    category.parentId == null || category.parentId == 0)
+                .where(
+                  (category) =>
+                      category.parentId == null || category.parentId == 0,
+                )
                 .toList();
-            final categories =
-                rootCategories.isNotEmpty ? rootCategories : sourceList;
+            final categories = rootCategories.isNotEmpty
+                ? rootCategories
+                : sourceList;
 
             // 8 items per slide (2 lines x 4 columns)
             const itemsPerPage = 8;
-            final totalPages =
-                (categories.length / itemsPerPage).ceil().clamp(1, 999);
+            final totalPages = (categories.length / itemsPerPage).ceil().clamp(
+              1,
+              999,
+            );
 
             return Column(
               children: [
@@ -1402,8 +1401,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                                         padding: EdgeInsets.all(5.w),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(16.r),
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
                                           border: Border.all(
                                             color: isSelected
                                                 ? AppColors.primary
@@ -1414,23 +1414,25 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                                             BoxShadow(
                                               color: isSelected
                                                   ? AppColors.primary
-                                                      .withOpacity(0.18)
-                                                  : Colors.black.withOpacity(0.04),
+                                                        .withOpacity(0.18)
+                                                  : Colors.black.withOpacity(
+                                                      0.04,
+                                                    ),
                                               blurRadius: isSelected ? 8 : 6,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
                                         child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12.r),
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
                                           child: Container(
                                             color: const Color(0xFFF8FAFC),
                                             child: Image.network(
                                               cat.imageUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Center(
+                                              errorBuilder: (_, __, ___) => Center(
                                                 child: Icon(
                                                   Icons
                                                       .medical_services_rounded,
@@ -1637,8 +1639,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         final categories = (streamCats != null && streamCats.isNotEmpty)
             ? streamCats
             : (bootstrapCats != null && bootstrapCats.isNotEmpty)
-                ? bootstrapCats
-                : _defaultCategories;
+            ? bootstrapCats
+            : _defaultCategories;
         CategoryItem? selectedRoot;
         for (final category in categories) {
           if (category.id == _selectedRootCategoryId) {
@@ -1647,8 +1649,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
           }
         }
         if (selectedRoot == null) return const SizedBox.shrink();
+        final root = selectedRoot;
 
-        final subcategories = _subcategoriesFor(selectedRoot, categories);
+        final subcategories = _subcategoriesFor(root, categories);
         if (subcategories.isEmpty) return const SizedBox.shrink();
 
         return Container(
@@ -1671,7 +1674,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    '${selectedRoot.displayName} সাব-ক্যাটাগরি:',
+                    '${root.displayName} সাব-ক্যাটাগরি:',
                     style: TextStyle(
                       fontSize: 11.5.sp,
                       fontWeight: FontWeight.w700,
@@ -1698,7 +1701,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   separatorBuilder: (_, __) => SizedBox(width: 8.w),
                   itemBuilder: (context, index) {
                     final category = index == 0
-                        ? selectedRoot!
+                        ? root
                         : subcategories[index - 1];
                     final isAll = index == 0;
                     final isSelected = _selectedCategoryId == category.id;
@@ -1713,9 +1716,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                           vertical: 7.h,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.white,
+                          color: isSelected ? AppColors.primary : Colors.white,
                           borderRadius: BorderRadius.circular(18.r),
                           border: Border.all(
                             color: isSelected
@@ -1747,7 +1748,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                             ],
                             Text(
                               isAll
-                                  ? 'সব (${selectedRoot.displayName})'
+                                  ? 'সব (${root.displayName})'
                                   : category.displayName,
                               style: TextStyle(
                                 color: isSelected
@@ -1815,8 +1816,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 3.h,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(12.r),
@@ -1835,8 +1838,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     onTap: _clearCategorySelection,
                     borderRadius: BorderRadius.circular(12.r),
                     child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.5.h,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12.r),
