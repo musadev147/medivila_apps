@@ -38,8 +38,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   final PageController _offerPageController = PageController(
     viewportFraction: 0.50,
   );
+  final PageController _categoryPageController = PageController();
 
   int _currentBannerIndex = 0;
+  int _currentCategoryPageIndex = 0;
   Timer? _bannerTimer;
   Timer? _serviceBannerTimer;
   Timer? _offerTimer;
@@ -159,6 +161,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     _bannerPageController.dispose();
     _serviceBannerPageController.dispose();
     _offerPageController.dispose();
+    _categoryPageController.dispose();
     _bannerTimer?.cancel();
     _serviceBannerTimer?.cancel();
     _offerTimer?.cancel();
@@ -388,14 +391,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                         child: _buildEspeciallyForYouSection(),
                       ),
                       SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-
-                      // "Shop by Category" Section (matches CategoryShowcase.jsx)
-                      SliverToBoxAdapter(child: _buildShopByCategorySection()),
-                      SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-
-                      // Dynamic Homepage Category Sections (matches HomeCategorySections.jsx)
-                      _buildHomePageCategorySectionsSliver(),
                     ],
+
+                    // "Shop by Category" Section (matches CategoryShowcase.jsx) - ALWAYS VISIBLE!
+                    SliverToBoxAdapter(child: _buildShopByCategorySection()),
+                    SliverToBoxAdapter(child: SizedBox(height: 16.h)),
 
                     // Category Selected View: Subcategories + Products Grid
                     if (isCategorySelected) ...[
@@ -404,6 +404,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       SliverToBoxAdapter(child: _buildCategorySectionHeader()),
                       _buildProductGridSliver(),
                       SliverToBoxAdapter(child: _buildLoadMoreButton()),
+                    ] else ...[
+                      // Dynamic Homepage Category Sections (matches HomeCategorySections.jsx)
+                      _buildHomePageCategorySectionsSliver(),
                     ],
 
                     // Bottom clearance
@@ -1300,7 +1303,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 6. "Shop by Category" Section (matches CategoryShowcase.jsx)
+  // ───────────────────────────────────────────────────────── 6. "Shop by Category" Section (2 Lines per Slide + Sliding)
   Widget _buildShopByCategorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1332,94 +1335,220 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             }
 
             final rootCategories = sourceList
-                .where((category) => category.parentId == null || category.parentId == 0)
+                .where((category) =>
+                    category.parentId == null || category.parentId == 0)
                 .toList();
             final categories =
                 rootCategories.isNotEmpty ? rootCategories : sourceList;
 
-            return GridView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 14.w),
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: categories.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 8.w,
-                mainAxisSpacing: 12.h,
-                childAspectRatio: 0.68,
-              ),
-              itemBuilder: (context, index) {
-                final cat = categories[index];
-                final isSelected = _selectedRootCategoryId == cat.id;
+            // 8 items per slide (2 lines x 4 columns)
+            const itemsPerPage = 8;
+            final totalPages =
+                (categories.length / itemsPerPage).ceil().clamp(1, 999);
 
-                return InkWell(
-                  onTap: () => _onCategorySelected(cat, cat.displayName),
-                  borderRadius: BorderRadius.circular(16.r),
-                  child: Column(
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1.0,
-                        child: Container(
-                          padding: EdgeInsets.all(5.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
+            return Column(
+              children: [
+                SizedBox(
+                  height: 236.h,
+                  child: PageView.builder(
+                    controller: _categoryPageController,
+                    itemCount: totalPages,
+                    onPageChanged: (pageIndex) {
+                      setState(() {
+                        _currentCategoryPageIndex = pageIndex;
+                      });
+                    },
+                    itemBuilder: (context, pageIndex) {
+                      final startIndex = pageIndex * itemsPerPage;
+                      final pageItems = categories
+                          .skip(startIndex)
+                          .take(itemsPerPage)
+                          .toList();
+
+                      return GridView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w),
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: pageItems.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8.w,
+                          mainAxisSpacing: 10.h,
+                          childAspectRatio: 0.68,
+                        ),
+                        itemBuilder: (context, index) {
+                          final cat = pageItems[index];
+                          final isSelected = _selectedRootCategoryId == cat.id;
+                          final subcats = _subcategoriesFor(cat, sourceList);
+                          final hasSub = subcats.isNotEmpty;
+
+                          return InkWell(
+                            onTap: () {
+                              if (_selectedRootCategoryId == cat.id &&
+                                  _selectedCategoryId == cat.id) {
+                                _clearCategorySelection();
+                              } else {
+                                _onCategorySelected(cat, cat.displayName);
+                              }
+                            },
                             borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : const Color(0xFFE2E8F0),
-                              width: isSelected ? 2 : 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12.r),
-                            child: Container(
-                              color: const Color(0xFFF8FAFC),
-                              child: Image.network(
-                                cat.imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Center(
-                                  child: Icon(
-                                    Icons.medical_services_rounded,
-                                    color: AppColors.primary,
-                                    size: 26.sp,
+                            child: Column(
+                              children: [
+                                AspectRatio(
+                                  aspectRatio: 1.0,
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(5.w),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(16.r),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.primary
+                                                : const Color(0xFFE2E8F0),
+                                            width: isSelected ? 2.2 : 1,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                      .withOpacity(0.18)
+                                                  : Colors.black.withOpacity(0.04),
+                                              blurRadius: isSelected ? 8 : 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12.r),
+                                          child: Container(
+                                            color: const Color(0xFFF8FAFC),
+                                            child: Image.network(
+                                              cat.imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  Center(
+                                                child: Icon(
+                                                  Icons
+                                                      .medical_services_rounded,
+                                                  color: AppColors.primary,
+                                                  size: 26.sp,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // If category has subcategories, show a badge indicating subcategories
+                                      if (hasSub)
+                                        Positioned(
+                                          top: 3.w,
+                                          right: 3.w,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 4.w,
+                                              vertical: 1.5.h,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : const Color(0xFF0F172A),
+                                              borderRadius:
+                                                  BorderRadius.circular(6.r),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '${subcats.length}',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 8.sp,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons
+                                                      .keyboard_arrow_down_rounded,
+                                                  color: Colors.white,
+                                                  size: 9.sp,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      // Active Selected Check Badge
+                                      if (isSelected)
+                                        Positioned(
+                                          top: 3.w,
+                                          left: 3.w,
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.check_circle_rounded,
+                                              color: AppColors.primary,
+                                              size: 15.sp,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                              ),
+                                SizedBox(height: 5.h),
+                                Expanded(
+                                  child: Text(
+                                    cat.displayName,
+                                    maxLines: 2,
+                                    textAlign: TextAlign.center,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10.5.sp,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w800
+                                          : FontWeight.w600,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : const Color(0xFF1E293B),
+                                      height: 1.15,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
-                      Expanded(
-                        child: Text(
-                          cat.displayName,
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10.5.sp,
-                            fontWeight: isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: isSelected
-                                ? AppColors.primary
-                                : const Color(0xFF1E293B),
-                            height: 1.15,
-                          ),
-                        ),
-                      ),
-                    ],
+                          );
+                        },
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                if (totalPages > 1) ...[
+                  SizedBox(height: 8.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(totalPages, (i) {
+                      final isActive = _currentCategoryPageIndex == i;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: EdgeInsets.symmetric(horizontal: 3.w),
+                        height: 5.h,
+                        width: isActive ? 18.w : 6.w,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? AppColors.primary
+                              : const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ],
             );
           },
         ),
@@ -1522,31 +1651,122 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         final subcategories = _subcategoriesFor(selectedRoot, categories);
         if (subcategories.isEmpty) return const SizedBox.shrink();
 
-        return SizedBox(
-          height: 44.h,
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
-            scrollDirection: Axis.horizontal,
-            itemCount: subcategories.length + 1,
-            separatorBuilder: (_, __) => SizedBox(width: 8.w),
-            itemBuilder: (context, index) {
-              final category = index == 0
-                  ? selectedRoot!
-                  : subcategories[index - 1];
-              final isSelected = _selectedCategoryId == category.id;
-              return ChoiceChip(
-                label: Text(category.displayName),
-                selected: isSelected,
-                selectedColor: AppColors.primary,
-                backgroundColor: const Color(0xFFF1F5F9),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF334155),
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: 14.w),
+          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 10.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.subdirectory_arrow_right_rounded,
+                    size: 15.sp,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    '${selectedRoot.displayName} সাব-ক্যাটাগরি:',
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${subcategories.length} টি সাব-ক্যাটাগরি',
+                    style: TextStyle(
+                      fontSize: 10.5.sp,
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              SizedBox(
+                height: 36.h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: subcategories.length + 1,
+                  separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                  itemBuilder: (context, index) {
+                    final category = index == 0
+                        ? selectedRoot!
+                        : subcategories[index - 1];
+                    final isAll = index == 0;
+                    final isSelected = _selectedCategoryId == category.id;
+
+                    return InkWell(
+                      onTap: () => _selectCategoryFilter(category),
+                      borderRadius: BorderRadius.circular(18.r),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 7.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(18.r),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : const Color(0xFFCBD5E1),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            if (!isSelected)
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isAll) ...[
+                              Icon(
+                                Icons.grid_view_rounded,
+                                size: 12.sp,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF64748B),
+                              ),
+                              SizedBox(width: 4.w),
+                            ],
+                            Text(
+                              isAll
+                                  ? 'সব (${selectedRoot.displayName})'
+                                  : category.displayName,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                                fontSize: 11.sp,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                onSelected: (_) => _selectCategoryFilter(category),
-              );
-            },
+              ),
+            ],
           ),
         );
       },
@@ -1591,20 +1811,59 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text(
-                  '$count products',
-                  style: TextStyle(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF009640),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      '$count products',
+                      style: TextStyle(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF009640),
+                      ),
+                    ),
                   ),
-                ),
+                  SizedBox(width: 8.w),
+                  InkWell(
+                    onTap: _clearCategorySelection,
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.close_rounded,
+                            size: 13.sp,
+                            color: const Color(0xFF64748B),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            'রিসেট',
+                            style: TextStyle(
+                              fontSize: 10.5.sp,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1810,6 +2069,24 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       bnName: 'Medical Equipments',
       slug: 'medical-equipments',
       image: 'https://api.medivila.com/storage/B1MsEz3L316g9k6syQRqYoV1KeFGl3qC.webp',
+      children: [
+        CategoryItem(
+          id: 83,
+          name: 'Diagnostic Equipments',
+          bnName: 'Diagnostic Equipments',
+          slug: 'diagnostic-equipments',
+          parentId: 86,
+          image: 'https://api.medivila.com/storage/YJIqnS87tReiz7HRlHooufkSZxxNPrpU.webp',
+        ),
+        CategoryItem(
+          id: 23,
+          name: 'Abbott Medical Device',
+          bnName: 'Abbott Medical Device',
+          slug: 'abbott-medical-device',
+          parentId: 86,
+          image: 'https://api.medivila.com/storage/fK9TEurwGR0GvkF4yMqIWX20D9oUlQDd.webp',
+        ),
+      ],
     ),
     CategoryItem(
       id: 90,
@@ -1852,6 +2129,57 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       bnName: 'Homeo & Wellness Care',
       slug: 'homeo-wellness-care',
       image: 'https://api.medivila.com/storage/hDBF0dSDMdhdFQjvOZ6eZf7YewBocCz9.webp',
+      children: [
+        CategoryItem(
+          id: 63,
+          name: 'Bioplasgen Products',
+          bnName: 'Bioplasgen Products',
+          slug: 'bioplasgen-products',
+          parentId: 31,
+        ),
+        CategoryItem(
+          id: 72,
+          name: 'Fever',
+          bnName: 'Fever',
+          slug: 'fever',
+          parentId: 31,
+        ),
+        CategoryItem(
+          id: 77,
+          name: 'Skin Diseases',
+          bnName: 'Skin Diseases',
+          slug: 'skin-diseases',
+          parentId: 31,
+        ),
+        CategoryItem(
+          id: 37,
+          name: 'Acidity & Digestion',
+          bnName: 'Acidity & Digestion',
+          slug: 'acidity-digestion',
+          parentId: 31,
+        ),
+        CategoryItem(
+          id: 74,
+          name: 'Joints Pain/Arthritis',
+          bnName: 'Joints Pain/Arthritis',
+          slug: 'joints-painarthritisrheumatism',
+          parentId: 31,
+        ),
+      ],
+    ),
+    CategoryItem(
+      id: 26,
+      name: 'Natural & Nutritional Products',
+      bnName: 'Natural & Nutritional Products',
+      slug: 'natural-nutritional-products',
+      image: 'https://api.medivila.com/storage/sfAkTgWbuBkwFuTlILKZmnt8sfGsnrkV.webp',
+    ),
+    CategoryItem(
+      id: 88,
+      name: 'Fitness & Sports Nutrition',
+      bnName: 'Fitness & Sports Nutrition',
+      slug: 'fitness-sports-nutrition',
+      image: 'https://api.medivila.com/storage/7tM3w07QWAPuvRsTgbWhoHW1OtVSKGva.webp',
     ),
   ];
 

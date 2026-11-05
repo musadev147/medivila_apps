@@ -70,10 +70,7 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
         ),
         content: Text(
           'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে লগআউট করতে চান?',
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: const Color(0xFF475569),
-          ),
+          style: TextStyle(fontSize: 13.sp, color: const Color(0xFF475569)),
         ),
         actionsPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 14.h),
         actions: [
@@ -101,10 +98,7 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
             ),
             child: Text(
               'লগআউট',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -458,17 +452,22 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                       final streamCats = snapshot.data;
                       final bootstrapCats =
                           getBootstrapRx.dataFetcher.valueOrNull?.categories;
-                      final sourceList = (streamCats != null && streamCats.isNotEmpty)
+                      final sourceList =
+                          (streamCats != null && streamCats.isNotEmpty)
                           ? streamCats
                           : (bootstrapCats != null && bootstrapCats.isNotEmpty)
-                              ? bootstrapCats
-                              : _defaultCategories;
+                          ? bootstrapCats
+                          : _defaultCategories;
                       final rootCategories = sourceList
-                          .where((category) =>
-                              category.parentId == null || category.parentId == 0)
+                          .where(
+                            (category) =>
+                                category.parentId == null ||
+                                category.parentId == 0,
+                          )
                           .toList();
-                      final categories =
-                          rootCategories.isNotEmpty ? rootCategories : sourceList;
+                      final categories = rootCategories.isNotEmpty
+                          ? rootCategories
+                          : sourceList;
                       return Column(
                         children: categories
                             .map((cat) => _buildCategoryTile(cat))

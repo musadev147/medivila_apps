@@ -154,8 +154,10 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                   ? streamCats
                   : (bootstrapCats ?? <CategoryItem>[]);
               final categories = sourceList
-                  .where((category) =>
-                      category.parentId == null || category.parentId == 0)
+                  .where(
+                    (category) =>
+                        category.parentId == null || category.parentId == 0,
+                  )
                   .toList();
               if (categories.isEmpty) return const SizedBox.shrink();
 
