@@ -85,7 +85,7 @@ class CartProvider extends ChangeNotifier {
   bool priceChanged = false;
 
   String _selectedDistrict = 'Dhaka';
-  double _deliveryCharge = 60.0;
+  double _deliveryCharge = 70.0;
 
   String get selectedDistrict => _selectedDistrict;
   double get deliveryCharge => _deliveryCharge;

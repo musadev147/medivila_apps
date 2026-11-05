@@ -69,9 +69,9 @@ class _SearchScreenState extends State<SearchScreen> {
               height: 46.h,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
-                  color: const Color(0xFFD81B60), // Magenta border
+                  color: const Color(0xFF16A34A), // Magenta border
                   width: 1.5,
                 ),
               ),
@@ -80,7 +80,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   SizedBox(width: 10.w),
                   Icon(
                     Icons.search_rounded,
-                    color: const Color(0xFFD81B60),
+                    color: const Color(0xFF16A34A),
                     size: 22.sp,
                   ),
                   SizedBox(width: 8.w),
@@ -100,7 +100,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         color: const Color(0xFF0F172A),
                       ),
                       decoration: InputDecoration(
-                        hintText: 'পণ্য কোড বা নাম লিখুন',
+                        hintText: 'Wholesale পণ্য কোড বা নাম লিখুন',
                         hintStyle: TextStyle(
                           fontSize: 13.sp,
                           color: const Color(0xFF757575),
@@ -132,7 +132,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       width: 48.w,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD81B60),
+                        color: const Color(0xFF16A34A),
                         borderRadius: BorderRadius.horizontal(
                           right: Radius.circular(6.5.r),
                         ),
@@ -156,7 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
             child: Row(
               children: [
-                _buildFilterChip(0, 'ওষুধ ও পণ্য'),
+                _buildFilterChip(0, 'Wholesale'),
                 SizedBox(width: 8.w),
                 _buildFilterChip(1, 'ল্যাব টেস্ট'),
                 SizedBox(width: 8.w),
@@ -179,14 +179,14 @@ class _SearchScreenState extends State<SearchScreen> {
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _selectedFilter = index),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(12.r),
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
             color: isSelected
                 ? const Color(0xFFE8F5E9)
                 : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(8.r),
+            borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
             ),
@@ -219,7 +219,7 @@ class _SearchScreenState extends State<SearchScreen> {
             );
           }
           if (products.isEmpty) {
-            return _buildEmptyState('কোনো পণ্য পাওয়া যায়নি');
+            return _buildEmptyState('কোনো Wholesale পণ্য পাওয়া যায়নি');
           }
 
           return GridView.builder(
@@ -264,7 +264,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   side: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
                 leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(12.r),
                   child: Container(
                     width: 40.w,
                     height: 40.w,

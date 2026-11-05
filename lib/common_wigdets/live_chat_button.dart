@@ -74,6 +74,18 @@ class LiveChatFloatingButton extends StatelessWidget {
   }
 
   static Future<void> _openJoinLink(Uri uri, String appName) async {
+    if (appName == 'WhatsApp') {
+      final message = Uri.encodeComponent(
+        'হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।',
+      );
+      final whatsAppUri = Uri.parse(
+        'whatsapp://send?phone=8801625491153&text=$message',
+      );
+      if (await launchUrl(whatsAppUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    }
+
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       AppToast.error('$appName ওপেন করা যাচ্ছে না');
     }
@@ -147,20 +159,13 @@ class LiveChatFloatingButton extends StatelessWidget {
               icon: Icons.chat_rounded,
               iconColor: const Color(0xFF25D366),
               title: 'WhatsApp লাইভ চ্যাট',
-              subtitle: 'মেসেজ দিন ও সাথে সাথে পরামর্শ নিন',
+              subtitle: AppConfig.helplinePhone,
               onTap: () async {
                 Navigator.pop(ctx);
-                final cleanPhone = AppConfig.cleanBdPhone(
-                  AppConfig.helplinePhone,
-                );
                 final uri = Uri.parse(
-                  'https://wa.me/880$cleanPhone?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
+                  'https://wa.me/8801625491153?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
                 );
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  AppToast.error('WhatsApp ওপেন করা যাচ্ছে না');
-                }
+                await _openJoinLink(uri, 'WhatsApp');
               },
             ),
             SizedBox(height: 10.h),

@@ -27,3 +27,18 @@ final GetLabTestsRx getLabTestsRx = GetLabTestsRx(
   empty: [],
   dataFetcher: BehaviorSubject<List<LabTestModel>>(),
 );
+
+final GetServiceBannersRx getServiceBannersRx = GetServiceBannersRx(
+  empty: [],
+  dataFetcher: BehaviorSubject<List<ServiceBanner>>(),
+);
+
+final GetOffersRx getOffersRx = GetOffersRx(
+  empty: [],
+  dataFetcher: BehaviorSubject<List<OfferItem>>(),
+);
+
+final GetHomePageMenusRx getHomePageMenusRx = GetHomePageMenusRx(
+  empty: [],
+  dataFetcher: BehaviorSubject<List<HomePageMenu>>(),
+);

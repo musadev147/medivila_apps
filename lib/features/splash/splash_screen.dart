@@ -47,6 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
       getCategoriesRx.fetchCategories(),
       getProductsRx.fetchProducts(),
       getLabTestsRx.fetchLabTests(),
+      getServiceBannersRx.fetchServiceBanners(),
       getDoctorsRx.fetchDoctors(),
       context.read<AuthProvider>().restore(),
       context.read<CartProvider>().load(),
@@ -194,7 +195,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 SizedBox(height: 12.h),
                 Text(
-                  '১০০% খাঁটি ঔষধ ও দ্রুত হোম ডেলিভারি',
+                  '১০০% দ্রুত হোম ডেলিভারি',
                   style: TextStyle(
                     fontSize: 11.5.sp,
                     fontWeight: FontWeight.w600,

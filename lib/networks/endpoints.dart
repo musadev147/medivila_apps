@@ -11,6 +11,8 @@ final class Endpoints {
   static String categories() => "/category";
   static String categoryDetails(dynamic id) => "/category/$id";
   static String offers() => "/offers";
+  static String menus() => "/menus";
+  static String serviceBanners() => "/service-banners";
 
   // Cart, Checkout & Orders
   static String cartStore() => "/cartstore";

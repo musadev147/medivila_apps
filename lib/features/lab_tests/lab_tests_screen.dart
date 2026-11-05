@@ -22,9 +22,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
   @override
   void initState() {
     super.initState();
-    if (getLabTestsRx.dataFetcher.valueOrNull == null) {
-      getLabTestsRx.fetchLabTests();
-    }
+    getLabTestsRx.fetchLabTests();
   }
 
   @override

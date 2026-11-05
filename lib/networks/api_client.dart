@@ -10,41 +10,50 @@ import '../constants/app_config.dart';
 /// once) and retries. If refresh fails, [onSessionExpired] fires.
 class ApiClient {
   ApiClient._() {
-    dio = Dio(BaseOptions(
-      baseUrl: AppConfig.apiUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {'Accept': 'application/json'},
-    ));
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = _access ??= await _storage.read(key: _kAccess);
-        if (token != null && options.extra['noAuth'] != true) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-      onError: (e, handler) async {
-        final is401 = e.response?.statusCode == 401;
-        final path = e.requestOptions.path;
-        final isAuthCall = path.contains('/auth/token/refresh/') || path.contains('/auth/login/');
-        final hadToken = e.requestOptions.headers['Authorization'] != null;
-        if (is401 && hadToken && !isAuthCall && e.requestOptions.extra['retried'] != true) {
-          if (await _refresh()) {
-            final req = e.requestOptions..extra['retried'] = true;
-            req.headers['Authorization'] = 'Bearer $_access';
-            try {
-              return handler.resolve(await dio.fetch(req));
-            } on DioException catch (err) {
-              return handler.next(err);
-            }
+    dio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.apiUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {'Accept': 'application/json'},
+      ),
+    );
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = _access ??= await _storage.read(key: _kAccess);
+          if (token != null && options.extra['noAuth'] != true) {
+            options.headers['Authorization'] = 'Bearer $token';
           }
-          await clearTokens();
-          onSessionExpired?.call();
-        }
-        handler.next(e);
-      },
-    ));
+          handler.next(options);
+        },
+        onError: (e, handler) async {
+          final is401 = e.response?.statusCode == 401;
+          final path = e.requestOptions.path;
+          final isAuthCall =
+              path.contains('/auth/token/refresh/') ||
+              path.contains('/auth/login/');
+          final hadToken = e.requestOptions.headers['Authorization'] != null;
+          if (is401 &&
+              hadToken &&
+              !isAuthCall &&
+              e.requestOptions.extra['retried'] != true) {
+            if (await _refresh()) {
+              final req = e.requestOptions..extra['retried'] = true;
+              req.headers['Authorization'] = 'Bearer ${_access!}';
+              try {
+                return handler.resolve(await dio.fetch(req));
+              } on DioException catch (err) {
+                return handler.next(err);
+              }
+            }
+            await clearTokens();
+            onSessionExpired?.call();
+          }
+          handler.next(e);
+        },
+      ),
+    );
   }
 
   static final ApiClient instance = ApiClient._();
@@ -59,7 +68,8 @@ class ApiClient {
 
   void Function()? onSessionExpired;
 
-  Future<bool> get hasToken async => (await _storage.read(key: _kAccess)) != null;
+  Future<bool> get hasToken async =>
+      (await _storage.read(key: _kAccess)) != null;
 
   Future<String?> get refreshToken => _storage.read(key: _kRefresh);
 
@@ -93,7 +103,10 @@ class ApiClient {
         _access = r.data['access'] as String;
         await _storage.write(key: _kAccess, value: _access);
         if (r.data['refresh'] != null) {
-          await _storage.write(key: _kRefresh, value: r.data['refresh'] as String);
+          await _storage.write(
+            key: _kRefresh,
+            value: r.data['refresh'] as String,
+          );
         }
         ok = true;
       }

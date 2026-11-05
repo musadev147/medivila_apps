@@ -54,7 +54,7 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
-          'পাইকারি (B2B) ঔষধ সরবরাহ',
+          'Wholesale পণ্যসমূহ',
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: FontWeight.w700,
@@ -104,7 +104,7 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
                             ),
                             SizedBox(width: 8.w),
                             Text(
-                              'ফার্মেসি ও ক্লিনিক হোলসেল সাপ্লাই',
+                              'Wholesale পণ্য সরবরাহ',
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.bold,
@@ -115,7 +115,7 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
                         ),
                         SizedBox(height: 6.h),
                         Text(
-                          'ড্রাগ লাইসেন্সধারী ফার্মেসির জন্য সরাসরি প্রস্তুতকারকের রেটে ওষুধ সরবরাহ। বিশেষ ক্যাশব্যাক ও ক্রেডিট সুবিধা।',
+                          'Wholesale দামে পণ্য সংগ্রহ করুন। বিশেষ ক্যাশব্যাক ও ক্রেডিট সুবিধা।',
                           style: TextStyle(
                             fontSize: 11.5.sp,
                             color: Colors.white.withOpacity(0.9),
@@ -145,7 +145,7 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
                   SizedBox(height: 18.h),
 
                   Text(
-                    'হোলসেল মেডিসিন রেট চার্ট:',
+                    'Wholesale পণ্যের তালিকা:',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
@@ -286,7 +286,7 @@ class _WholesaleScreenState extends State<WholesaleScreen> {
               TextField(
                 controller: businessCtrl,
                 decoration: InputDecoration(
-                  labelText: 'ফার্মেসি / প্রতিষ্ঠানের নাম',
+                  labelText: 'প্রতিষ্ঠানের নাম',
                   filled: true,
                   fillColor: const Color(0xFFF8FAFC),
                   border: OutlineInputBorder(

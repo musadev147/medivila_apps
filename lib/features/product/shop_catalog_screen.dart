@@ -68,15 +68,15 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
               height: 44.h,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: const Color(0xFFD81B60), width: 1.5),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
               ),
               child: Row(
                 children: [
                   SizedBox(width: 10.w),
                   Icon(
                     Icons.search_rounded,
-                    color: const Color(0xFFD81B60),
+                    color: const Color(0xFF16A34A),
                     size: 20.sp,
                   ),
                   SizedBox(width: 8.w),
@@ -124,7 +124,7 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
                       width: 44.w,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD81B60),
+                        color: const Color(0xFF16A34A),
                         borderRadius: BorderRadius.horizontal(
                           right: Radius.circular(6.5.r),
                         ),

@@ -27,6 +27,28 @@ class BootstrapApi {
   }
 }
 
+// ───────────────────────────────────────────────────────────── Service Banners
+class ServiceBannersApi {
+  ServiceBannersApi._();
+  static final ServiceBannersApi instance = ServiceBannersApi._();
+
+  Future<List<ServiceBanner>> getServiceBanners() async {
+    final response = await getHttp(Endpoints.serviceBanners());
+    if (response.statusCode != 200 || response.data == null) {
+      throw const FormatException('Invalid service banners API response');
+    }
+    final data = response.data;
+    final list = data is Map
+        ? (data['data'] is List ? data['data'] as List : const [])
+        : const [];
+    return list
+        .map((e) => ServiceBanner.fromJson(Map<String, dynamic>.from(e)))
+        .where((b) => b.isActive)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  }
+}
+
 // ───────────────────────────────────────────────────────────── 2. Products API
 class ProductsApi {
   ProductsApi._();
@@ -425,5 +447,67 @@ class UserAuthApi {
     final data = Map<String, dynamic>.from(response.data as Map);
     final userData = data['user'] is Map ? data['user'] : data;
     return MedivilaUser.fromJson(Map<String, dynamic>.from(userData));
+  }
+}
+
+// ------------------------------------------------------------- 10. Offers API
+class OffersApi {
+  OffersApi._();
+  static final OffersApi instance = OffersApi._();
+
+  Future<List<OfferItem>> getOffers() async {
+    try {
+      final response = await getHttp(Endpoints.offers());
+      if (response.statusCode != 200 || response.data == null) {
+        return const [];
+      }
+      final raw = response.data;
+      final List<dynamic> list = raw is List
+          ? raw
+          : (raw is Map && raw['data'] is List ? raw['data'] : const []);
+      final offers = list
+          .map((e) => OfferItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      offers.sort((a, b) {
+        if (a.sortOrder != b.sortOrder)
+          return a.sortOrder.compareTo(b.sortOrder);
+        return a.id.compareTo(b.id);
+      });
+      return offers;
+    } catch (e) {
+      log('OffersApi Error: $e');
+      return const [];
+    }
+  }
+}
+
+// ------------------------------------------------------------- 11. Menus API
+class MenusApi {
+  MenusApi._();
+  static final MenusApi instance = MenusApi._();
+
+  Future<List<HomePageMenu>> getHomePageMenus() async {
+    try {
+      final response = await getHttp(Endpoints.menus());
+      if (response.statusCode != 200 || response.data == null) {
+        return const [];
+      }
+      final raw = response.data;
+      final List<dynamic> list = raw is List
+          ? raw
+          : (raw is Map && raw['data'] is List ? raw['data'] : const []);
+      final menus = list
+          .map((e) => HomePageMenu.fromJson(Map<String, dynamic>.from(e)))
+          .where(
+            (m) =>
+                m.menuType.toLowerCase() == 'home_page' && m.category != null,
+          )
+          .toList();
+      menus.sort((a, b) => a.order.compareTo(b.order));
+      return menus;
+    } catch (e) {
+      log('MenusApi Error: $e');
+      return const [];
+    }
   }
 }

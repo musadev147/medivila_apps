@@ -144,3 +144,84 @@ class GetLabTestsRx extends RxResponseInt<List<LabTestModel>> {
     return true;
   }
 }
+
+// 6. Service Banners Rx
+class GetServiceBannersRx extends RxResponseInt<List<ServiceBanner>> {
+  final api = ServiceBannersApi.instance;
+
+  GetServiceBannersRx({required super.empty, required super.dataFetcher});
+
+  ValueStream<List<ServiceBanner>> get valueStreamData => dataFetcher.stream;
+
+  Future<bool> fetchServiceBanners() async {
+    try {
+      final data = await api.getServiceBanners();
+      return await handleSuccessWithReturn(data);
+    } catch (error) {
+      log("fetchServiceBanners Error: $error");
+      return await handleErrorWithReturn(error);
+    }
+  }
+
+  @override
+  handleSuccessWithReturn(data) async {
+    if (!dataFetcher.isClosed) {
+      dataFetcher.sink.add(data);
+    }
+    return true;
+  }
+}
+
+// 6. Offers Rx
+class GetOffersRx extends RxResponseInt<List<OfferItem>> {
+  final api = OffersApi.instance;
+
+  GetOffersRx({required super.empty, required super.dataFetcher});
+
+  ValueStream<List<OfferItem>> get valueStreamData => dataFetcher.stream;
+
+  Future<bool> fetchOffers() async {
+    try {
+      List<OfferItem> data = await api.getOffers();
+      return await handleSuccessWithReturn(data);
+    } catch (error) {
+      log("fetchOffers Error: $error");
+      return await handleErrorWithReturn(error);
+    }
+  }
+
+  @override
+  handleSuccessWithReturn(data) async {
+    if (!dataFetcher.isClosed) {
+      dataFetcher.sink.add(data);
+    }
+    return true;
+  }
+}
+
+// 7. Menus Rx
+class GetHomePageMenusRx extends RxResponseInt<List<HomePageMenu>> {
+  final api = MenusApi.instance;
+
+  GetHomePageMenusRx({required super.empty, required super.dataFetcher});
+
+  ValueStream<List<HomePageMenu>> get valueStreamData => dataFetcher.stream;
+
+  Future<bool> fetchMenus() async {
+    try {
+      List<HomePageMenu> data = await api.getHomePageMenus();
+      return await handleSuccessWithReturn(data);
+    } catch (error) {
+      log("fetchMenus Error: $error");
+      return await handleErrorWithReturn(error);
+    }
+  }
+
+  @override
+  handleSuccessWithReturn(data) async {
+    if (!dataFetcher.isClosed) {
+      dataFetcher.sink.add(data);
+    }
+    return true;
+  }
+}

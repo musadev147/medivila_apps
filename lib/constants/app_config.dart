@@ -3,7 +3,7 @@ class AppConfig {
 
   static const String appName = 'মেডিভিলা (Medivila)';
   static const String appSlogan =
-      'আপনার নির্ভরযোগ্য অনলাইন ফার্মেসি ও স্বাস্থ্যসেবা';
+      'আপনার নির্ভরযোগ্য অনলাইন শপিং';
   static const String helplinePhone = '+8801625491153';
   static const String supportEmail = 'medivila.com@gmail.com';
   static const String logoAsset = 'assets/images/medivila-logo-bn.png';

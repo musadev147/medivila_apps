@@ -342,10 +342,10 @@ class _CartScreenState extends State<CartScreen> {
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
                     decoration: BoxDecoration(
-                      color: cart.deliveryCharge == 60 ? const Color(0xFFE8F5E9) : const Color(0xFFF8FAFC),
+                      color: cart.deliveryCharge == 70 ? const Color(0xFFE8F5E9) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: cart.deliveryCharge == 60 ? AppColors.primary : const Color(0xFFE2E8F0),
+                        color: cart.deliveryCharge == 70 ? AppColors.primary : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: Column(
@@ -364,10 +364,10 @@ class _CartScreenState extends State<CartScreen> {
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
                     decoration: BoxDecoration(
-                      color: cart.deliveryCharge == 120 ? const Color(0xFFE8F5E9) : const Color(0xFFF8FAFC),
+                      color: cart.deliveryCharge == 130 ? const Color(0xFFE8F5E9) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: cart.deliveryCharge == 120 ? AppColors.primary : const Color(0xFFE2E8F0),
+                        color: cart.deliveryCharge == 130 ? AppColors.primary : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: Column(

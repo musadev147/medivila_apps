@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import '../constants/app_config.dart';
 import '../helpers/format_utils.dart';
 
@@ -279,7 +281,9 @@ class MedicineProduct {
   factory MedicineProduct.fromJson(Map<String, dynamic> json) {
     final homepage = json['homepage'];
     final homepageDescription = homepage is Map
-        ? homepage['description'] ?? homepage['paragraph'] ?? homepage['headline']
+        ? homepage['description'] ??
+              homepage['paragraph'] ??
+              homepage['headline']
         : homepage;
     final rawDescription =
         homepageDescription ?? json['description'] ?? json['paragraph'];
@@ -531,6 +535,75 @@ class TimeSlot {
   }
 }
 
+// ───────────────────────────────────────────────────────────── 4. Service Banners
+class ServiceBanner {
+  final int id;
+  final int? labTestId;
+  final String title;
+  final String? tag;
+  final String? buttonText;
+  final String? buttonLink;
+  final String? image;
+  final String? imageUrl;
+  final double? originalPrice;
+  final double? discountedPrice;
+  final int sortOrder;
+  final bool isActive;
+  final LabTestModel? labTest;
+
+  ServiceBanner({
+    required this.id,
+    this.labTestId,
+    required this.title,
+    this.tag,
+    this.buttonText,
+    this.buttonLink,
+    this.image,
+    this.imageUrl,
+    this.originalPrice,
+    this.discountedPrice,
+    this.sortOrder = 0,
+    this.isActive = true,
+    this.labTest,
+  });
+
+  String get displayName =>
+      labTest?.name.isNotEmpty == true ? labTest!.name : title;
+  String get displayImageUrl {
+    final nested = labTest?.image;
+    final raw = imageUrl ?? image ?? nested;
+    return AppConfig.resolveImageUrl(raw);
+  }
+
+  double get displayOriginalPrice =>
+      labTest?.originalPrice ?? originalPrice ?? 0;
+  double get displayDiscountedPrice =>
+      labTest?.discountedPrice ?? discountedPrice ?? 0;
+
+  factory ServiceBanner.fromJson(Map<String, dynamic> json) {
+    final lab = json['lab_test'] is Map
+        ? LabTestModel.fromJson(Map<String, dynamic>.from(json['lab_test']))
+        : null;
+    return ServiceBanner(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      labTestId: int.tryParse(json['lab_test_id']?.toString() ?? ''),
+      title: json['title']?.toString() ?? '',
+      tag: json['tag']?.toString(),
+      buttonText: json['button_text']?.toString(),
+      buttonLink: json['button_link']?.toString(),
+      image: json['image']?.toString(),
+      imageUrl: json['image_url']?.toString(),
+      originalPrice: double.tryParse(json['original_price']?.toString() ?? ''),
+      discountedPrice: double.tryParse(
+        json['discounted_price']?.toString() ?? '',
+      ),
+      sortOrder: int.tryParse(json['sort_order']?.toString() ?? '0') ?? 0,
+      isActive: json['is_active'] != false,
+      labTest: lab,
+    );
+  }
+}
+
 // ───────────────────────────────────────────────────────────── 4. Lab Tests
 class LabTestModel {
   final int id;
@@ -652,6 +725,111 @@ class MedivilaUser {
       points: int.tryParse(json['points']?.toString() ?? '0') ?? 0,
       type: json['type']?.toString() ?? 'user',
       token: token ?? json['token']?.toString(),
+    );
+  }
+}
+
+// ------------------------------------------------------------- 7. Offer Item
+class OfferItem {
+  final int id;
+  final String title;
+  final String topText;
+  final String discount;
+  final String mainText;
+  final String? subtext;
+  final String? supportText;
+  final String buttonText;
+  final String? buttonLink;
+  final String? image;
+  final String? rawCardColor;
+  final int sortOrder;
+
+  OfferItem({
+    required this.id,
+    required this.title,
+    required this.topText,
+    required this.discount,
+    required this.mainText,
+    this.subtext,
+    this.supportText,
+    required this.buttonText,
+    this.buttonLink,
+    this.image,
+    this.rawCardColor,
+    this.sortOrder = 9999,
+  });
+
+  String get imageUrl => AppConfig.resolveImageUrl(image);
+
+  Color get cardColor {
+    if (rawCardColor != null && rawCardColor!.trim().isNotEmpty) {
+      final hex = rawCardColor!.trim().replaceAll('#', '');
+      if (hex.length == 6) {
+        final val = int.tryParse('FF$hex', radix: 16);
+        if (val != null) return Color(val);
+      } else if (hex.length == 8) {
+        final val = int.tryParse(hex, radix: 16);
+        if (val != null) return Color(val);
+      }
+    }
+    final lower = '$title $topText $mainText $discount'.toLowerCase();
+    if (lower.contains('whatsapp')) return const Color(0xFFBC6C00);
+    if (lower.contains('prescription')) return const Color(0xFF10ADBE);
+    if (lower.contains('call')) return const Color(0xFFDC6803);
+    if (lower.contains('health')) return const Color(0xFF10ADBE);
+    return const Color(0xFF5CD163);
+  }
+
+  factory OfferItem.fromJson(Map<String, dynamic> json) {
+    return OfferItem(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      title: json['title']?.toString() ?? '',
+      topText: json['top_text']?.toString() ?? json['title']?.toString() ?? '',
+      discount: json['discount']?.toString() ?? '',
+      mainText:
+          json['main_text']?.toString() ?? json['discount']?.toString() ?? '',
+      subtext: json['subtext']?.toString(),
+      supportText: json['support_text']?.toString(),
+      buttonText: json['button_text']?.toString() ?? 'Click Here',
+      buttonLink: json['button_link']?.toString(),
+      image: json['image']?.toString(),
+      rawCardColor: json['card_color']?.toString(),
+      sortOrder: int.tryParse(json['sort_order']?.toString() ?? '9999') ?? 9999,
+    );
+  }
+}
+
+// ------------------------------------------------------------- 8. Home Page Menu
+class HomePageMenu {
+  final int id;
+  final String name;
+  final int? categoryId;
+  final String menuType;
+  final int order;
+  final String? link;
+  final CategoryItem? category;
+
+  HomePageMenu({
+    required this.id,
+    required this.name,
+    this.categoryId,
+    required this.menuType,
+    required this.order,
+    this.link,
+    this.category,
+  });
+
+  factory HomePageMenu.fromJson(Map<String, dynamic> json) {
+    return HomePageMenu(
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      categoryId: int.tryParse(json['category_id']?.toString() ?? ''),
+      menuType: json['menu_type']?.toString() ?? '',
+      order: int.tryParse(json['order']?.toString() ?? '0') ?? 0,
+      link: json['link']?.toString(),
+      category: json['category'] != null && json['category'] is Map
+          ? CategoryItem.fromJson(Map<String, dynamic>.from(json['category']))
+          : null,
     );
   }
 }

@@ -20,6 +20,7 @@ class MedivilaProductCard extends StatelessWidget {
     final cart = context.watch<CartProvider>();
     final isDiscounted = product.hasDiscount;
     final discountPercent = product.discountPercentage;
+    final isAdded = cart.lines.any((l) => l.product == '');
 
     return InkWell(
       onTap: () {
@@ -30,16 +31,16 @@ class MedivilaProductCard extends StatelessWidget {
           ),
         );
       },
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
@@ -48,10 +49,9 @@ class MedivilaProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top: Discount badge & Image
+            // Top: Discount badge & Product Image
             Stack(
               children: [
-                // Product Image
                 Center(
                   child: Container(
                     height: 110.h,
@@ -70,25 +70,25 @@ class MedivilaProductCard extends StatelessWidget {
                   ),
                 ),
 
-                // Discount Badge on top-left (Exact match to Image 1)
+                // Discount Badge on top-left (rounded pill)
                 if (isDiscounted && discountPercent > 0)
                   Positioned(
                     top: 0,
                     left: 0,
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 6.w,
+                        horizontal: 7.w,
                         vertical: 2.h,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(4.r),
+                        borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
                         '$discountPercent% OFF',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 9.5.sp,
+                          fontSize: 9.sp,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
                         ),
@@ -108,7 +108,7 @@ class MedivilaProductCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFF1E293B),
                 height: 1.25,
               ),
             ),
@@ -140,39 +140,39 @@ class MedivilaProductCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13.5.sp,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF009640),
+                          color: const Color(0xFF16A34A),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // Outlined ADD Button (Exact match to Image 1)
+                // Outlined or filled ADD Button
                 InkWell(
                   onTap: () {
                     cart.addMedicine(product);
                     AppToast.success('কার্টে যোগ করা হয়েছে!');
                   },
-                  borderRadius: BorderRadius.circular(6.r),
+                  borderRadius: BorderRadius.circular(8.r),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 10.w,
                       vertical: 5.h,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6.r),
+                      color: isAdded ? const Color(0xFFE8F5E9) : Colors.white,
+                      borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: const Color(0xFF009640),
+                        color: const Color(0xFF16A34A),
                         width: 1.2,
                       ),
                     ),
                     child: Text(
-                      'ADD',
+                      isAdded ? 'ADDED' : 'ADD',
                       style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF009640),
+                        color: const Color(0xFF16A34A),
                         letterSpacing: 0.5,
                       ),
                     ),

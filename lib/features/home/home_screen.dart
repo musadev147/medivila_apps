@@ -31,17 +31,27 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchCtrl = TextEditingController();
   final PageController _bannerPageController = PageController();
+  final PageController _serviceBannerPageController = PageController(
+    initialPage: 500000,
+    viewportFraction: 0.58,
+  );
+  final PageController _offerPageController = PageController(
+    initialPage: 500000,
+    viewportFraction: 0.58,
+  );
 
   int _currentBannerIndex = 0;
   Timer? _bannerTimer;
+  Timer? _serviceBannerTimer;
+  Timer? _offerTimer;
 
   // Search placeholder cycling animation (matches HeaderSearchBar.jsx)
   final List<String> _searchPlaceholders = const [
     'আপনি কি খুঁজতে চান?',
-    'পণ্যের নাম লিখুন...',
+    'Wholesale পণ্যের নাম লিখুন...',
     'ব্র্যান্ড বা ক্যাটাগরি সার্চ করুন',
     'সেরা অফার খুঁজুন...',
-    'পণ্য কোড বা নাম লিখুন',
+    'Wholesale পণ্য কোড বা নাম লিখুন',
   ];
   int _currentPlaceholderIndex = 0;
   Timer? _placeholderTimer;
@@ -66,9 +76,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     if (getProductsRx.dataFetcher.valueOrNull == null) {
       getProductsRx.fetchProducts();
     }
-    if (getLabTestsRx.dataFetcher.valueOrNull == null) {
-      getLabTestsRx.fetchLabTests();
-    }
+    getLabTestsRx.fetchLabTests();
+    getServiceBannersRx.fetchServiceBanners();
     if (getDoctorsRx.dataFetcher.valueOrNull == null) {
       getDoctorsRx.fetchDoctors();
     }
@@ -80,7 +89,35 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     }
 
     _startBannerTimer();
+    _startServiceBannerTimer();
+    _startOfferTimer();
     _startPlaceholderTimer();
+  }
+
+  void _startOfferTimer() {
+    _offerTimer?.cancel();
+    _offerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_offerPageController.hasClients) return;
+      final nextPage = _offerPageController.page!.round() + 1;
+      _offerPageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _startServiceBannerTimer() {
+    _serviceBannerTimer?.cancel();
+    _serviceBannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_serviceBannerPageController.hasClients) return;
+      final nextPage = _serviceBannerPageController.page!.round() + 1;
+      _serviceBannerPageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   void _startBannerTimer() {
@@ -114,7 +151,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   void dispose() {
     _searchCtrl.dispose();
     _bannerPageController.dispose();
+    _serviceBannerPageController.dispose();
+    _offerPageController.dispose();
     _bannerTimer?.cancel();
+    _serviceBannerTimer?.cancel();
+    _offerTimer?.cancel();
     _placeholderTimer?.cancel();
     super.dispose();
   }
@@ -136,7 +177,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
     getProductsRx.fetchProducts(
       categoryId: cat?.id,
-      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
+      search: _searchCtrl.text.trim().isNotEmpty
+          ? _searchCtrl.text.trim()
+          : null,
     );
   }
 
@@ -149,7 +192,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
     getProductsRx.fetchProducts(
       categoryId: null,
-      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
+      search: _searchCtrl.text.trim().isNotEmpty
+          ? _searchCtrl.text.trim()
+          : null,
     );
   }
 
@@ -173,7 +218,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
     getProductsRx.fetchProducts(
       categoryId: category.id,
-      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
+      search: _searchCtrl.text.trim().isNotEmpty
+          ? _searchCtrl.text.trim()
+          : null,
     );
   }
 
@@ -187,22 +234,42 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   }
 
   Future<void> _openWhatsApp(String? targetUrl) async {
-    final cleanPhone = AppConfig.cleanBdPhone(AppConfig.helplinePhone);
-    final rawNumber =
-        cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
     final fallbackUrl =
-        'https://wa.me/880$rawNumber?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}';
-    final url = (targetUrl != null && targetUrl.isNotEmpty) ? targetUrl : fallbackUrl;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+        'https://wa.me/8801625491153?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}';
+    final url = (targetUrl != null && targetUrl.isNotEmpty)
+        ? targetUrl
+        : fallbackUrl;
+    final message = Uri.encodeComponent(
+      'হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।',
+    );
+    final appUri = Uri.parse(
+      'whatsapp://send?phone=8801625491153&text=$message',
+    );
+    if (await launchUrl(appUri, mode: LaunchMode.externalApplication)) {
+      return;
+    }
+
+    final webUri = Uri.parse(url);
+    if (!await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
       AppToast.error('WhatsApp ওপেন করা যাচ্ছে না');
     }
   }
 
   void _handleOfferClick(OfferItem offer) {
     final link = (offer.buttonLink ?? '').trim();
+    final lowerTitle = offer.title.toLowerCase();
+    if (lowerTitle.contains('call now') || lowerTitle.contains('call')) {
+      final phone = (offer.supportText ?? AppConfig.helplinePhone).trim();
+      _makeCall(phone.isNotEmpty ? phone : AppConfig.helplinePhone);
+      return;
+    }
+    if (lowerTitle.contains('whats app') ||
+        lowerTitle.contains('whatsapp') ||
+        link.contains('wa.me') ||
+        link.contains('whatsapp')) {
+      _openWhatsApp(link.isNotEmpty ? link : null);
+      return;
+    }
     if (link == 'prescription' || link.contains('prescription')) {
       Navigator.push(
         context,
@@ -279,8 +346,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   await Future.wait([
                     getBootstrapRx.fetchBootstrap(),
                     getCategoriesRx.fetchCategories(),
-                    getProductsRx.fetchProducts(categoryId: _selectedCategoryId),
+                    getProductsRx.fetchProducts(
+                      categoryId: _selectedCategoryId,
+                    ),
                     getLabTestsRx.fetchLabTests(),
+                    getServiceBannersRx.fetchServiceBanners(),
                     getDoctorsRx.fetchDoctors(),
                     getOffersRx.fetchOffers(),
                     getHomePageMenusRx.fetchMenus(),
@@ -298,11 +368,15 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       SliverToBoxAdapter(child: SizedBox(height: 14.h)),
 
                       // Diagnostic Lab Tests Horizontal Cards (matches LabTest.jsx)
-                      SliverToBoxAdapter(child: _buildDiagnosticLabTestsSection()),
+                      SliverToBoxAdapter(
+                        child: _buildDiagnosticLabTestsSection(),
+                      ),
                       SliverToBoxAdapter(child: SizedBox(height: 16.h)),
 
                       // "Especially For You" Dynamic Offers (matches SpecialForYou.jsx)
-                      SliverToBoxAdapter(child: _buildEspeciallyForYouSection()),
+                      SliverToBoxAdapter(
+                        child: _buildEspeciallyForYouSection(),
+                      ),
                       SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
                       // "Shop by Category" Section (matches CategoryShowcase.jsx)
@@ -376,10 +450,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
           // Center: Medivila Bengali Logo
           InkWell(
             onTap: _clearCategorySelection,
-            child: BrandLogo(
-              height: 42.h,
-              width: 145.w,
-            ),
+            child: BrandLogo(height: 42.h, width: 145.w),
           ),
 
           // Right: User Profile Icon Button
@@ -413,7 +484,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               child: Center(
                 child: Icon(
                   Icons.person_rounded,
-                  color: auth.loggedIn ? AppColors.primary : const Color(0xFF1E293B),
+                  color: auth.loggedIn
+                      ? AppColors.primary
+                      : const Color(0xFF1E293B),
                   size: 20,
                 ),
               ),
@@ -544,7 +617,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.home_rounded, color: Color(0xFF2563EB), size: 16),
+                const Icon(
+                  Icons.home_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 16,
+                ),
                 SizedBox(width: 4.w),
                 Text(
                   'Home',
@@ -584,11 +661,18 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.close_rounded, size: 14, color: Color(0xFF64748B)),
+                  const Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: Color(0xFF64748B),
+                  ),
                   SizedBox(width: 2.w),
                   Text(
                     'Clear',
-                    style: TextStyle(fontSize: 11.sp, color: const Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                 ],
               ),
@@ -806,37 +890,58 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   }
 
   // ───────────────────────────────────────────────────────── 4. Diagnostic Lab Tests Section (matches LabTest.jsx)
-  Widget _buildDiagnosticLabTestsSection() {
-    return StreamBuilder<List<LabTestModel>>(
-      stream: getLabTestsRx.valueStreamData,
-      builder: (context, snapshot) {
-        final tests = snapshot.data ?? _fallbackLabTests;
-        if (tests.isEmpty) return const SizedBox.shrink();
+  Future<void> _openServiceBanner(ServiceBanner banner) async {
+    if (banner.buttonLink != null && banner.buttonLink!.isNotEmpty) {
+      final uri = Uri.tryParse(banner.buttonLink!);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+    if (banner.labTestId != null || banner.labTest != null) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LabTestsScreen()),
+      );
+    }
+  }
 
-        return SizedBox(
-          height: 124.h,
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 14.w),
-            scrollDirection: Axis.horizontal,
-            itemCount: tests.length,
-            separatorBuilder: (_, __) => SizedBox(width: 10.w),
-            itemBuilder: (context, index) {
-              final t = tests[index];
-              return _buildLabTestCard(t);
-            },
+  Widget _buildDiagnosticLabTestsSection() {
+    return StreamBuilder<List<ServiceBanner>>(
+      stream: getServiceBannersRx.valueStreamData,
+      builder: (context, snapshot) {
+        final banners = snapshot.data ?? const <ServiceBanner>[];
+        if (banners.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          child: SizedBox(
+            height: 124.h,
+            child: PageView.builder(
+              controller: _serviceBannerPageController,
+              itemCount: 1000000,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: EdgeInsets.only(right: 10.w),
+                  child: _buildServiceBannerCard(
+                    banners[index % banners.length],
+                  ),
+                );
+              },
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildLabTestCard(LabTestModel test) {
+  Widget _buildServiceBannerCard(ServiceBanner banner) {
+    final originalPrice = banner.displayOriginalPrice;
+    final discountedPrice = banner.displayDiscountedPrice;
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LabTestsScreen()),
-        );
+        _openServiceBanner(banner);
       },
       borderRadius: BorderRadius.circular(14.r),
       child: Container(
@@ -856,7 +961,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'HOME',
+                  banner.tag?.isNotEmpty == true ? banner.tag! : 'HOME',
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w700,
@@ -873,17 +978,17 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   child: Row(
                     children: [
                       Text(
-                        '৳ ${test.discountedPrice.toStringAsFixed(2)}',
+                        '৳ ${discountedPrice.toStringAsFixed(0)}',
                         style: TextStyle(
                           fontSize: 10.5.sp,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
                         ),
                       ),
-                      if (test.originalPrice > test.discountedPrice) ...[
+                      if (originalPrice > discountedPrice) ...[
                         SizedBox(width: 4.w),
                         Text(
-                          '৳${test.originalPrice.toStringAsFixed(2)}',
+                          '৳${originalPrice.toStringAsFixed(0)}',
                           style: TextStyle(
                             fontSize: 9.sp,
                             color: const Color(0xFFEF4444),
@@ -899,7 +1004,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
             // Middle: Test Name
             Text(
-              test.name,
+              banner.displayName,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -915,7 +1020,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6.r),
@@ -925,7 +1033,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Book Now',
+                        banner.buttonText?.replaceAll(' ↗', '') ?? 'Book Now',
                         style: TextStyle(
                           fontSize: 10.5.sp,
                           fontWeight: FontWeight.w700,
@@ -950,7 +1058,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Image.network(
-                    test.imageUrl,
+                    banner.displayImageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.biotech_rounded,
@@ -992,14 +1100,19 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
             return SizedBox(
               height: 175.h,
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
-                scrollDirection: Axis.horizontal,
-                itemCount: offers.length,
-                separatorBuilder: (_, __) => SizedBox(width: 12.w),
+              child: PageView.builder(
+                controller: _offerPageController,
+                padEnds: false,
+                itemCount: offers.length * 100000,
                 itemBuilder: (context, index) {
-                  final offer = offers[index];
-                  return _buildOfferCard(offer, index);
+                  final offer = offers[index % offers.length];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      left: index == 500000 ? 14.w : 0,
+                      right: 12.w,
+                    ),
+                    child: _buildOfferCard(offer, index % offers.length),
+                  );
                 },
               ),
             );
@@ -1016,7 +1129,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       onTap: () => _handleOfferClick(offer),
       borderRadius: BorderRadius.only(
         topLeft: Radius.circular(16.r),
-        topRight: Radius.circular(52.r), // Asymmetric top-right curved corner matching web!
+        topRight: Radius.circular(
+          52.r,
+        ), // Asymmetric top-right curved corner matching web!
         bottomLeft: Radius.circular(16.r),
         bottomRight: Radius.circular(16.r),
       ),
@@ -1109,7 +1224,8 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     color: const Color(0xFF0F172A),
                   ),
                 ),
-                if (offer.supportText != null && offer.supportText!.isNotEmpty) ...[
+                if (offer.supportText != null &&
+                    offer.supportText!.isNotEmpty) ...[
                   SizedBox(height: 1.h),
                   Text(
                     offer.supportText!,
@@ -1286,16 +1402,13 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
         // Render each category section sequentially (matching HomeCategorySections.jsx)
         return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final menu = menus[index];
-              return _HomePageCategoryProductSection(
-                menu: menu,
-                onViewAll: () => _onCategorySelected(menu.category, menu.name),
-              );
-            },
-            childCount: menus.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final menu = menus[index];
+            return _HomePageCategoryProductSection(
+              menu: menu,
+              onViewAll: () => _onCategorySelected(menu.category, menu.name),
+            );
+          }, childCount: menus.length),
         );
       },
     );
@@ -1363,7 +1476,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             itemCount: subcategories.length + 1,
             separatorBuilder: (_, __) => SizedBox(width: 8.w),
             itemBuilder: (context, index) {
-              final category = index == 0 ? selectedRoot! : subcategories[index - 1];
+              final category = index == 0
+                  ? selectedRoot!
+                  : subcategories[index - 1];
               final isSelected = _selectedCategoryId == category.id;
               return ChoiceChip(
                 label: Text(category.displayName),
@@ -1597,7 +1712,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       topText: 'Whats App',
       discount: '5% Discount',
       mainText: '5% Discount',
-      buttonText: 'Call Now',
+      buttonText: 'Whats App',
       buttonLink: 'https://wa.me/8801625491153',
       image: 'https://api.medivila.com/storage/offers/6a44d1e94e7fe.webp',
       rawCardColor: '#bc6c00',
@@ -1610,7 +1725,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       mainText: '2% Discount',
       supportText: '+8801625491153',
       buttonText: 'Call Now',
-      buttonLink: 'https://wa.me/8801625491153',
+      buttonLink: 'tel:+8801625491153',
       image: 'https://api.medivila.com/storage/offers/6a47f4db3d3f3.webp',
       rawCardColor: '#dc6803',
     ),
@@ -1624,25 +1739,6 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       buttonLink: 'https://medivila.com/category/healthcare',
       image: 'https://api.medivila.com/storage/offers/6a47f3bc9c68b.webp',
       rawCardColor: '#10ADBE',
-    ),
-  ];
-
-  static final List<LabTestModel> _fallbackLabTests = [
-    LabTestModel(
-      id: 1,
-      slug: 'pbf-peripheral-blood-film',
-      name: 'PBF (Peripheral Blood Film)',
-      originalPrice: 500.0,
-      discountedPrice: 300.0,
-      image: 'https://api.medivila.com/storage/lab/pbf.jpg',
-    ),
-    LabTestModel(
-      id: 2,
-      slug: 'hb-hemoglobin',
-      name: '(HB%) Hemoglobin',
-      originalPrice: 300.0,
-      discountedPrice: 200.0,
-      image: 'https://api.medivila.com/storage/lab/hb.jpg',
     ),
   ];
 
@@ -1801,7 +1897,10 @@ class _HomePageCategoryProductSectionState
                   InkWell(
                     onTap: widget.onViewAll,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 4.h,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(12.r),
@@ -1885,7 +1984,10 @@ class _HomePageCategoryProductSectionState
                   },
                   borderRadius: BorderRadius.circular(20.r),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 8.h,
+                    ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF22C55E), Color(0xFF059669)],
