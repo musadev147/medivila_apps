@@ -14,6 +14,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_config.dart';
 import '../../models/medivila_models.dart';
 import '../../networks/api_access.dart';
+import '../../networks/medivila_api_services.dart';
 import '../../provider/auth_provider.dart';
 import '../lab_tests/lab_tests_screen.dart';
 import '../prescription/prescription_screen.dart';
@@ -34,15 +35,28 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   int _currentBannerIndex = 0;
   Timer? _bannerTimer;
 
+  // Search placeholder cycling animation (matches HeaderSearchBar.jsx)
+  final List<String> _searchPlaceholders = const [
+    'আপনি কি খুঁজতে চান?',
+    'পণ্যের নাম লিখুন...',
+    'ব্র্যান্ড বা ক্যাটাগরি সার্চ করুন',
+    'সেরা অফার খুঁজুন...',
+    'পণ্য কোড বা নাম লিখুন',
+  ];
+  int _currentPlaceholderIndex = 0;
+  Timer? _placeholderTimer;
+
   int? _selectedCategoryId;
   int? _selectedRootCategoryId;
-  String _selectedCategoryName = 'Sergical & Ortho Care';
+  String _selectedCategoryName = '';
 
   int _productsVisibleLimit = 10;
 
   @override
   void initState() {
     super.initState();
+
+    // Bootstrap app data
     if (getBootstrapRx.dataFetcher.valueOrNull == null) {
       getBootstrapRx.fetchBootstrap();
     }
@@ -58,16 +72,23 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     if (getDoctorsRx.dataFetcher.valueOrNull == null) {
       getDoctorsRx.fetchDoctors();
     }
+    if (getOffersRx.dataFetcher.valueOrNull == null) {
+      getOffersRx.fetchOffers();
+    }
+    if (getHomePageMenusRx.dataFetcher.valueOrNull == null) {
+      getHomePageMenusRx.fetchMenus();
+    }
 
     _startBannerTimer();
+    _startPlaceholderTimer();
   }
 
   void _startBannerTimer() {
     _bannerTimer?.cancel();
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_bannerPageController.hasClients) return;
       final banners = getBootstrapRx.dataFetcher.valueOrNull?.banners ?? [];
-      final count = banners.isEmpty ? 3 : banners.length;
+      final count = banners.isEmpty ? 2 : banners.length;
       final nextPage = (_currentBannerIndex + 1) % count;
       _bannerPageController.animateToPage(
         nextPage,
@@ -77,11 +98,24 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
   }
 
+  void _startPlaceholderTimer() {
+    _placeholderTimer?.cancel();
+    _placeholderTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        setState(() {
+          _currentPlaceholderIndex =
+              (_currentPlaceholderIndex + 1) % _searchPlaceholders.length;
+        });
+      }
+    });
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
     _bannerPageController.dispose();
     _bannerTimer?.cancel();
+    _placeholderTimer?.cancel();
     super.dispose();
   }
 
@@ -102,9 +136,20 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
     getProductsRx.fetchProducts(
       categoryId: cat?.id,
-      search: _searchCtrl.text.trim().isNotEmpty
-          ? _searchCtrl.text.trim()
-          : null,
+      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
+    );
+  }
+
+  void _clearCategorySelection() {
+    setState(() {
+      _selectedCategoryId = null;
+      _selectedRootCategoryId = null;
+      _selectedCategoryName = '';
+      _productsVisibleLimit = 10;
+    });
+    getProductsRx.fetchProducts(
+      categoryId: null,
+      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
     );
   }
 
@@ -128,9 +173,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     });
     getProductsRx.fetchProducts(
       categoryId: category.id,
-      search: _searchCtrl.text.trim().isNotEmpty
-          ? _searchCtrl.text.trim()
-          : null,
+      search: _searchCtrl.text.trim().isNotEmpty ? _searchCtrl.text.trim() : null,
     );
   }
 
@@ -143,13 +186,14 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     }
   }
 
-  Future<void> _openWhatsApp() async {
+  Future<void> _openWhatsApp(String? targetUrl) async {
     final cleanPhone = AppConfig.cleanBdPhone(AppConfig.helplinePhone);
     final rawNumber =
         cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone;
-    final uri = Uri.parse(
-      'https://wa.me/880$rawNumber?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}',
-    );
+    final fallbackUrl =
+        'https://wa.me/880$rawNumber?text=${Uri.encodeComponent('হ্যালো মেডিভিলা, আমার কিছু তথ্য প্রয়োজন।')}';
+    final url = (targetUrl != null && targetUrl.isNotEmpty) ? targetUrl : fallbackUrl;
+    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
@@ -157,8 +201,63 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     }
   }
 
+  void _handleOfferClick(OfferItem offer) {
+    final link = (offer.buttonLink ?? '').trim();
+    if (link == 'prescription' || link.contains('prescription')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PrescriptionScreen()),
+      );
+      return;
+    }
+    if (link.startsWith('http://') || link.startsWith('https://')) {
+      if (link.contains('wa.me') || link.contains('whatsapp')) {
+        _openWhatsApp(link);
+      } else {
+        final uri = Uri.parse(link);
+        launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+    if (link.startsWith('tel:')) {
+      _makeCall(link.replaceFirst('tel:', ''));
+      return;
+    }
+    // Check if category link
+    if (link.contains('category/')) {
+      final slug = link.split('category/').last.replaceAll('/', '');
+      final categories = getCategoriesRx.dataFetcher.valueOrNull ?? [];
+      CategoryItem? matched;
+      for (final c in categories) {
+        if (c.slug == slug || '${c.id}' == slug) {
+          matched = c;
+          break;
+        }
+      }
+      if (matched != null) {
+        _onCategorySelected(matched, matched.displayName);
+      }
+      return;
+    }
+
+    // Default by title
+    final lower = offer.title.toLowerCase();
+    if (lower.contains('prescription')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PrescriptionScreen()),
+      );
+    } else if (lower.contains('whatsapp')) {
+      _openWhatsApp(null);
+    } else if (lower.contains('call')) {
+      _makeCall(AppConfig.helplinePhone);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isCategorySelected = _selectedCategoryId != null;
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.white,
@@ -166,11 +265,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Top App Bar (Hamburger menu, Medivila Bengali Logo, User Profile)
+            // 1. Top Bar: Hamburger menu, Medivila Bengali Logo, User Profile
             _buildTopAppBar(),
 
-            // 2. Magenta Search Bar (Pinned at top - Image 1 & 3)
-            _buildMagentaSearchBar(),
+            // 2. Animated Emerald Search Bar (matches HeaderSearchBar.jsx)
+            _buildEmeraldSearchBar(),
 
             // Scrollable Content
             Expanded(
@@ -180,50 +279,51 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   await Future.wait([
                     getBootstrapRx.fetchBootstrap(),
                     getCategoriesRx.fetchCategories(),
-                    getProductsRx.fetchProducts(
-                      categoryId: _selectedCategoryId,
-                    ),
+                    getProductsRx.fetchProducts(categoryId: _selectedCategoryId),
                     getLabTestsRx.fetchLabTests(),
                     getDoctorsRx.fetchDoctors(),
+                    getOffersRx.fetchOffers(),
+                    getHomePageMenusRx.fetchMenus(),
                   ]);
                 },
                 child: CustomScrollView(
                   slivers: [
-                    // 3. Banner Carousel Slider (Winter Sale / Promos)
-                    SliverToBoxAdapter(child: _buildBannerCarousel()),
+                    // When category is selected: Breadcrumb Navigation
+                    if (isCategorySelected)
+                      SliverToBoxAdapter(child: _buildCategoryBreadcrumb()),
 
-                    SliverToBoxAdapter(child: SizedBox(height: 14.h)),
+                    // Home View: Banner Carousel Slider
+                    if (!isCategorySelected) ...[
+                      SliverToBoxAdapter(child: _buildBannerCarousel()),
+                      SliverToBoxAdapter(child: SizedBox(height: 14.h)),
 
-                    // 4. Diagnostic Lab Tests Horizontal Cards (Exact Match to Image 3)
-                    SliverToBoxAdapter(
-                      child: _buildDiagnosticLabTestsSection(),
-                    ),
+                      // Diagnostic Lab Tests Horizontal Cards (matches LabTest.jsx)
+                      SliverToBoxAdapter(child: _buildDiagnosticLabTestsSection()),
+                      SliverToBoxAdapter(child: SizedBox(height: 16.h)),
 
-                    SliverToBoxAdapter(child: SizedBox(height: 16.h)),
+                      // "Especially For You" Dynamic Offers (matches SpecialForYou.jsx)
+                      SliverToBoxAdapter(child: _buildEspeciallyForYouSection()),
+                      SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
-                    // 5. "Especially For You" Section (Image 3)
-                    SliverToBoxAdapter(child: _buildEspeciallyForYouSection()),
+                      // "Shop by Category" Section (matches CategoryShowcase.jsx)
+                      SliverToBoxAdapter(child: _buildShopByCategorySection()),
+                      SliverToBoxAdapter(child: SizedBox(height: 20.h)),
 
-                    SliverToBoxAdapter(child: SizedBox(height: 20.h)),
+                      // Dynamic Homepage Category Sections (matches HomeCategorySections.jsx)
+                      _buildHomePageCategorySectionsSliver(),
+                    ],
 
-                    // 6. "Shop by Category" Section (Image 3)
-                    SliverToBoxAdapter(child: _buildShopByCategorySection()),
+                    // Category Selected View: Subcategories + Products Grid
+                    if (isCategorySelected) ...[
+                      SliverToBoxAdapter(child: _buildSubcategorySelector()),
+                      SliverToBoxAdapter(child: SizedBox(height: 12.h)),
+                      SliverToBoxAdapter(child: _buildCategorySectionHeader()),
+                      _buildProductGridSliver(),
+                      SliverToBoxAdapter(child: _buildLoadMoreButton()),
+                    ],
 
-                    SliverToBoxAdapter(child: _buildSubcategorySelector()),
-
-                    SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-
-                    // 7. Category Products Header (Image 1: Green underline + count)
-                    SliverToBoxAdapter(child: _buildCategorySectionHeader()),
-
-                    // 8. 2-Column Product Grid (Image 1)
-                    _buildProductGridSliver(),
-
-                    // 9. Load More Button (Image 1: "Load More (10 of 22)")
-                    SliverToBoxAdapter(child: _buildLoadMoreButton()),
-
-                    // Space for bottom clearance above navigation bar
-                    SliverToBoxAdapter(child: SizedBox(height: 24.h)),
+                    // Bottom clearance
+                    SliverToBoxAdapter(child: SizedBox(height: 30.h)),
                   ],
                 ),
               ),
@@ -240,11 +340,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 6.h),
+      padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 6.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: Hamburger Menu Icon Button (Image 1, 2, 3)
+          // Left: Hamburger Menu Icon Button
           InkWell(
             onTap: () => _scaffoldKey.currentState?.openDrawer(),
             borderRadius: BorderRadius.circular(22.r),
@@ -273,10 +373,16 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             ),
           ),
 
-          // Center: Medivila Bengali Logo (Image 1, 2, 3)
-          const BrandLogo(height: 36),
+          // Center: Medivila Bengali Logo
+          InkWell(
+            onTap: _clearCategorySelection,
+            child: BrandLogo(
+              height: 42.h,
+              width: 145.w,
+            ),
+          ),
 
-          // Right: User Profile Icon Button (Image 1, 3)
+          // Right: User Profile Icon Button
           InkWell(
             onTap: () {
               if (auth.loggedIn) {
@@ -304,10 +410,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.person_rounded,
-                  color: Color(0xFF1E293B),
+                  color: auth.loggedIn ? AppColors.primary : const Color(0xFF1E293B),
                   size: 20,
                 ),
               ),
@@ -318,32 +424,41 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 2. Magenta Search Bar
-  Widget _buildMagentaSearchBar() {
+  // ───────────────────────────────────────────────────────── 2. Emerald Search Bar (matches HeaderSearchBar.jsx)
+  Widget _buildEmeraldSearchBar() {
+    final currentPlaceholder = _searchPlaceholders[_currentPlaceholderIndex];
+
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 8.h),
+      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 10.h),
       child: Container(
-        height: 46.h,
+        height: 48.h,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.r),
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: const Color(0xFFD81B60), // Magenta border (Image 1, 3)
+            color: const Color(0xFF86EFAC), // emerald-300 soft border
             width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF16A34A).withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            SizedBox(width: 10.w),
-            // Left Magenta Search Icon
+            SizedBox(width: 12.w),
+            // Left Search Icon in Emerald Green
             Icon(
               Icons.search_rounded,
-              color: const Color(0xFFD81B60),
+              color: const Color(0xFF16A34A),
               size: 22.sp,
             ),
-            SizedBox(width: 8.w),
-            // Search Input
+            SizedBox(width: 10.w),
+            // Search Input with Animated Cycling Placeholder
             Expanded(
               child: TextField(
                 controller: _searchCtrl,
@@ -357,12 +472,13 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 style: TextStyle(
                   fontSize: 13.5.sp,
                   color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'পণ্য কোড বা নাম লিখুন',
+                  hintText: currentPlaceholder,
                   hintStyle: TextStyle(
                     fontSize: 13.sp,
-                    color: const Color(0xFF757575),
+                    color: const Color(0xFF6B7280),
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -375,39 +491,110 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 icon: const Icon(
                   Icons.close_rounded,
                   size: 18,
-                  color: Colors.grey,
+                  color: Color(0xFF9CA3AF),
                 ),
                 onPressed: () {
                   _searchCtrl.clear();
                   _onSearch('');
                 },
               ),
-            // Right Solid Magenta Button with White Search Icon (Image 1, 3)
+            // Right Search Button with emerald gradient
             InkWell(
               onTap: () => _onSearch(_searchCtrl.text),
               borderRadius: BorderRadius.horizontal(
-                right: Radius.circular(6.5.r),
+                right: Radius.circular(10.r),
               ),
               child: Container(
                 width: 48.w,
                 height: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD81B60),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF22C55E), Color(0xFF059669)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.horizontal(
-                    right: Radius.circular(6.5.r),
+                    right: Radius.circular(10.r),
                   ),
                 ),
                 child: const Center(
                   child: Icon(
                     Icons.search_rounded,
                     color: Colors.white,
-                    size: 22,
+                    size: 20,
                   ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────── Category Breadcrumb
+  Widget _buildCategoryBreadcrumb() {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 10.h),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: _clearCategorySelection,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.home_rounded, color: Color(0xFF2563EB), size: 16),
+                SizedBox(width: 4.w),
+                Text(
+                  'Home',
+                  style: TextStyle(
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2563EB),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
+            child: const Text('/', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          Expanded(
+            child: Text(
+              _selectedCategoryName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF16A34A),
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: _clearCategorySelection,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.close_rounded, size: 14, color: Color(0xFF64748B)),
+                  SizedBox(width: 2.w),
+                  Text(
+                    'Clear',
+                    style: TextStyle(fontSize: 11.sp, color: const Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -427,11 +614,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
         return Container(
           margin: EdgeInsets.symmetric(horizontal: 14.w),
-          height: 150.h,
+          height: 154.h,
           child: Stack(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(16.r),
                 child: PageView.builder(
                   controller: _bannerPageController,
                   onPageChanged: (idx) {
@@ -471,11 +658,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       width: 28.w,
                       height: 28.w,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withOpacity(0.9),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.12),
                             blurRadius: 4,
                           ),
                         ],
@@ -513,11 +700,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       width: 28.w,
                       height: 28.w,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withOpacity(0.9),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.12),
                             blurRadius: 4,
                           ),
                         ],
@@ -534,7 +721,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 ),
               ),
 
-              // Dots Indicator (Image 3)
+              // Dots Indicator
               Positioned(
                 bottom: 8.h,
                 left: 0,
@@ -545,12 +732,12 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                     bannerList.length,
                     (i) => Container(
                       margin: EdgeInsets.symmetric(horizontal: 3.w),
-                      width: _currentBannerIndex == i ? 14.w : 6.w,
+                      width: _currentBannerIndex == i ? 16.w : 6.w,
                       height: 6.w,
                       decoration: BoxDecoration(
                         color: _currentBannerIndex == i
                             ? Colors.white
-                            : Colors.white.withOpacity(0.4),
+                            : Colors.white.withOpacity(0.45),
                         borderRadius: BorderRadius.circular(3.r),
                       ),
                     ),
@@ -618,7 +805,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 4. Diagnostic Lab Tests Section (Exact match to Image 3)
+  // ───────────────────────────────────────────────────────── 4. Diagnostic Lab Tests Section (matches LabTest.jsx)
   Widget _buildDiagnosticLabTestsSection() {
     return StreamBuilder<List<LabTestModel>>(
       stream: getLabTestsRx.valueStreamData,
@@ -656,7 +843,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         width: 220.w,
         padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
-          color: const Color(0xFFF4FBF7), // Mint background (Image 3)
+          color: const Color(0xFFF4FBF7), // Mint background
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
@@ -728,10 +915,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 4.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6.r),
@@ -783,7 +967,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 5. "Especially For You" Section
+  // ───────────────────────────────────────────────────────── 5. "Especially For You" Dynamic Section (matches SpecialForYou.jsx)
   Widget _buildEspeciallyForYouSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,189 +976,30 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
           child: Text(
             'Especially For You',
             style: TextStyle(
-              fontSize: 15.5.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF0F172A),
             ),
           ),
         ),
         SizedBox(height: 12.h),
-        StreamBuilder<List<CategoryItem>>(
-          stream: getCategoriesRx.valueStreamData,
+        StreamBuilder<List<OfferItem>>(
+          stream: getOffersRx.valueStreamData,
           builder: (context, snapshot) {
-            final rawCategories = (snapshot.data ?? _defaultCategories)
-                .where((category) => category.parentId == null)
-                .toList();
-
-            // Find HealthCare category or fallback to default
-            CategoryItem? healthCareCat;
-            for (final c in rawCategories) {
-              final n = c.name.toLowerCase();
-              final s = c.slug.toLowerCase();
-              if (n.contains('health') || s.contains('health')) {
-                healthCareCat = c;
-                break;
-              }
-            }
-            healthCareCat ??= (rawCategories.isNotEmpty
-                ? rawCategories.first
-                : _defaultCategories.first);
-
-            // Remaining categories (excluding HealthCare to avoid duplicate)
-            final otherCategories = rawCategories
-                .where((c) =>
-                    c.id != healthCareCat!.id && c.slug != healthCareCat.slug)
-                .toList();
-
-            // Order matching design:
-            // 0: Whats App
-            // 1: Call Now
-            // 2: HealthCare
-            // 3: Upload Prescription
-            // 4+: Other categories
-            final totalCount = 4 + otherCategories.length;
+            final offers = (snapshot.data != null && snapshot.data!.isNotEmpty)
+                ? snapshot.data!
+                : _fallbackOffers;
 
             return SizedBox(
-              height: 185.h,
+              height: 175.h,
               child: ListView.separated(
                 padding: EdgeInsets.symmetric(horizontal: 14.w),
                 scrollDirection: Axis.horizontal,
-                itemCount: totalCount,
-                separatorBuilder: (context, index) => SizedBox(width: 12.w),
+                itemCount: offers.length,
+                separatorBuilder: (_, __) => SizedBox(width: 12.w),
                 itemBuilder: (context, index) {
-                  // 1. Whats App
-                  if (index == 0) {
-                    return _buildSpecialCard(
-                      title: 'Whats App',
-                      subtitle: '5% Discount',
-                      buttonText: 'Call Now',
-                      themeColor: const Color(0xFFD68A2E),
-                      badgeBgColor: const Color(0xFF25D366),
-                      iconWidget: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_rounded,
-                            color: Colors.white,
-                            size: 19.sp,
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 2.h),
-                            child: Icon(
-                              Icons.phone_rounded,
-                              color: const Color(0xFF25D366),
-                              size: 9.sp,
-                            ),
-                          ),
-                        ],
-                      ),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFAF1E4), Color(0xFFD98E32)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      onTap: _openWhatsApp,
-                    );
-                  }
-
-                  // 2. Call Now
-                  if (index == 1) {
-                    return _buildSpecialCard(
-                      title: 'Call Now',
-                      subtitle: '2% Discount',
-                      extraLine: AppConfig.helplinePhone,
-                      buttonText: 'Call Now',
-                      themeColor: const Color(0xFFE8751A),
-                      badgeBgColor: Colors.white,
-                      iconWidget: Icon(
-                        Icons.phone_rounded,
-                        color: const Color(0xFF10B981),
-                        size: 19.sp,
-                      ),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFDF0E2), Color(0xFFE8751A)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      onTap: () => _makeCall(AppConfig.helplinePhone),
-                    );
-                  }
-
-                  // 3. HealthCare
-                  if (index == 2) {
-                    return _buildSpecialCard(
-                      title: healthCareCat!.displayName,
-                      subtitle: 'Upto 60% Discount',
-                      buttonText: 'Click Here',
-                      themeColor: const Color(0xFF0891B2),
-                      badgeBgColor: const Color(0xFF0891B2),
-                      iconWidget: Icon(
-                        Icons.volunteer_activism_rounded,
-                        color: Colors.white,
-                        size: 19.sp,
-                      ),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      onTap: () => _onCategorySelected(
-                        healthCareCat,
-                        healthCareCat!.displayName,
-                      ),
-                    );
-                  }
-
-                  // 4. Upload Prescription
-                  if (index == 3) {
-                    return _buildSpecialCard(
-                      title: 'Upload Prescription',
-                      subtitle: '7% Discount',
-                      buttonText: 'Upload',
-                      themeColor: const Color(0xFF0891B2),
-                      badgeBgColor: const Color(0xFF0891B2),
-                      iconWidget: Icon(
-                        Icons.assignment_rounded,
-                        color: Colors.white,
-                        size: 19.sp,
-                      ),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PrescriptionScreen(),
-                          ),
-                        );
-                      },
-                    );
-                  }
-
-                  // 5+. Other Categories
-                  final category = otherCategories[index - 4];
-                  return _buildSpecialCard(
-                    title: category.displayName,
-                    subtitle: 'Upto 60% Discount',
-                    buttonText: 'Click Here',
-                    themeColor: const Color(0xFF0891B2),
-                    badgeBgColor: const Color(0xFF0891B2),
-                    iconWidget: Icon(
-                      Icons.volunteer_activism_rounded,
-                      color: Colors.white,
-                      size: 19.sp,
-                    ),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE6F7F8), Color(0xFF26B6C6)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    onTap: () =>
-                        _onCategorySelected(category, category.displayName),
-                  );
+                  final offer = offers[index];
+                  return _buildOfferCard(offer, index);
                 },
               ),
             );
@@ -984,54 +1009,60 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  Widget _buildSpecialCard({
-    required String title,
-    required String subtitle,
-    required String buttonText,
-    required Color themeColor,
-    required Color badgeBgColor,
-    required Widget iconWidget,
-    required LinearGradient gradient,
-    required VoidCallback onTap,
-    String? extraLine,
-  }) {
+  Widget _buildOfferCard(OfferItem offer, int index) {
+    final accent = offer.cardColor;
+
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20.r),
+      onTap: () => _handleOfferClick(offer),
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(16.r),
+        topRight: Radius.circular(52.r), // Asymmetric top-right curved corner matching web!
+        bottomLeft: Radius.circular(16.r),
+        bottomRight: Radius.circular(16.r),
+      ),
       child: Container(
-        width: 230.w,
-        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
+        width: 220.w,
         decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(20.r),
+          gradient: LinearGradient(
+            colors: [const Color(0xFFFFFEF9), accent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16.r),
+            topRight: Radius.circular(52.r),
+            bottomLeft: Radius.circular(16.r),
+            bottomRight: Radius.circular(16.r),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
+        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Top Row: Title + Circular Icon Badge
+            // Top Row: Title + Circular Top-Right Icon Container
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.only(top: 4.h, right: 6.w),
+                    padding: EdgeInsets.only(top: 4.h, right: 8.w),
                     child: Text(
-                      title,
-                      maxLines: 1,
+                      offer.topText.isNotEmpty ? offer.topText : offer.title,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13.5.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
-                        letterSpacing: -0.2,
+                        height: 1.2,
                       ),
                     ),
                   ),
@@ -1040,62 +1071,62 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   width: 44.w,
                   height: 44.w,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.55),
                     shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: 34.w,
-                    height: 34.w,
-                    decoration: BoxDecoration(
-                      color: badgeBgColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 4,
-                        ),
-                      ],
+                  child: ClipOval(
+                    child: Image.network(
+                      offer.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.local_offer_rounded,
+                        color: accent,
+                        size: 20,
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: iconWidget,
                   ),
                 ),
               ],
             ),
 
-            // Middle Subtitle & Extra Info
+            // Middle Info
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  subtitle,
+                  offer.mainText.isNotEmpty ? offer.mainText : offer.discount,
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E293B),
-                    height: 1.25,
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
-                if (extraLine != null) ...[
-                  SizedBox(height: 2.h),
+                if (offer.supportText != null && offer.supportText!.isNotEmpty) ...[
+                  SizedBox(height: 1.h),
                   Text(
-                    extraLine,
+                    offer.supportText!,
                     style: TextStyle(
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
                       color: const Color(0xFF334155),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ],
             ),
 
-            // Bottom White Pill Button
+            // Bottom Action Button with white background and accent text
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 8.h),
+              padding: EdgeInsets.symmetric(vertical: 7.h),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8.r),
@@ -1109,11 +1140,11 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                buttonText,
+                offer.buttonText,
                 style: TextStyle(
                   fontSize: 11.5.sp,
                   fontWeight: FontWeight.w700,
-                  color: themeColor,
+                  color: accent,
                 ),
               ),
             ),
@@ -1123,31 +1154,31 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 6. "Shop by Category" Section (Image 3)
+  // ───────────────────────────────────────────────────────── 6. "Shop by Category" Section (matches CategoryShowcase.jsx)
   Widget _buildShopByCategorySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14.w),
+        Center(
           child: Text(
             'Shop by Category',
             style: TextStyle(
-              fontSize: 15.5.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w800,
               color: const Color(0xFF0F172A),
             ),
           ),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 12.h),
         StreamBuilder<List<CategoryItem>>(
           stream: getCategoriesRx.valueStreamData,
           builder: (context, snapshot) {
             final categories = (snapshot.data ?? _defaultCategories)
                 .where((category) => category.parentId == null)
                 .toList();
+
             return SizedBox(
-              height: 112.h,
+              height: 116.h,
               child: ListView.separated(
                 padding: EdgeInsets.symmetric(horizontal: 14.w),
                 scrollDirection: Axis.horizontal,
@@ -1159,40 +1190,51 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
                   return InkWell(
                     onTap: () => _onCategorySelected(cat, cat.displayName),
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(16.r),
                     child: SizedBox(
-                      width: 78.w,
+                      width: 82.w,
                       child: Column(
                         children: [
                           Container(
-                            width: 68.w,
-                            height: 68.w,
+                            width: 72.w,
+                            height: 72.w,
+                            padding: EdgeInsets.all(4.w),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14.r),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18.r),
                               border: Border.all(
                                 color: isSelected
                                     ? AppColors.primary
                                     : const Color(0xFFE2E8F0),
                                 width: isSelected ? 2 : 1,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(13.r),
-                              child: Image.network(
-                                cat.imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Center(
-                                  child: Icon(
-                                    Icons.medical_services_rounded,
-                                    color: AppColors.primary,
-                                    size: 28.sp,
+                              borderRadius: BorderRadius.circular(14.r),
+                              child: Container(
+                                color: const Color(0xFFF8FAFC),
+                                child: Image.network(
+                                  cat.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Icon(
+                                      Icons.medical_services_rounded,
+                                      color: AppColors.primary,
+                                      size: 28.sp,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          SizedBox(height: 4.h),
+                          SizedBox(height: 5.h),
                           Text(
                             cat.displayName,
                             maxLines: 2,
@@ -1222,6 +1264,80 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
+  // ───────────────────────────────────────────────────────── Dynamic Homepage Category Sections (matches HomeCategorySections.jsx)
+  Widget _buildHomePageCategorySectionsSliver() {
+    return StreamBuilder<List<HomePageMenu>>(
+      stream: getHomePageMenusRx.valueStreamData,
+      builder: (context, snapshot) {
+        final menus = snapshot.data ?? [];
+        if (menus.isEmpty) {
+          // If menus endpoint loading or empty, show single default category section
+          return SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDefaultCategoryHeader('Featured Products'),
+                _buildProductGridWidget(),
+                _buildLoadMoreButton(),
+              ],
+            ),
+          );
+        }
+
+        // Render each category section sequentially (matching HomeCategorySections.jsx)
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final menu = menus[index];
+              return _HomePageCategoryProductSection(
+                menu: menu,
+                onViewAll: () => _onCategorySelected(menu.category, menu.name),
+              );
+            },
+            childCount: menus.length,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDefaultCategoryHeader(String title) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 10.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Container(
+                width: 38.w,
+                height: 3.h,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4ADE80), Color(0xFF059669)],
+                  ),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────────────────── Subcategory Selector
   Widget _buildSubcategorySelector() {
     return StreamBuilder<List<CategoryItem>>(
       stream: getCategoriesRx.valueStreamData,
@@ -1240,16 +1356,14 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         if (subcategories.isEmpty) return const SizedBox.shrink();
 
         return SizedBox(
-          height: 48.h,
+          height: 44.h,
           child: ListView.separated(
             padding: EdgeInsets.symmetric(horizontal: 14.w),
             scrollDirection: Axis.horizontal,
             itemCount: subcategories.length + 1,
             separatorBuilder: (_, __) => SizedBox(width: 8.w),
             itemBuilder: (context, index) {
-              final category = index == 0
-                  ? selectedRoot!
-                  : subcategories[index - 1];
+              final category = index == 0 ? selectedRoot! : subcategories[index - 1];
               final isSelected = _selectedCategoryId == category.id;
               return ChoiceChip(
                 label: Text(category.displayName),
@@ -1270,7 +1384,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 7. Category Products Header (Image 1)
+  // ───────────────────────────────────────────────────────── Category Products Header
   Widget _buildCategorySectionHeader() {
     return StreamBuilder<List<MedicineProduct>>(
       stream: getProductsRx.valueStreamData,
@@ -1279,42 +1393,48 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         final count = products.length;
 
         return Padding(
-          padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 10.h),
+          padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 12.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Category Title with Green underline accent bar (Exact Match to Image 1)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _selectedCategoryName,
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: 16.5.sp,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF0F172A),
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Container(
-                    width: 38.w,
+                    width: 44.w,
                     height: 3.h,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF009640),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4ADE80), Color(0xFF059669)],
+                      ),
                       borderRadius: BorderRadius.circular(2.r),
                     ),
                   ),
                 ],
               ),
-
-              // Product count in green text (e.g., "26 products" in Image 1)
-              Text(
-                '$count products',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF009640),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Text(
+                  '$count products',
+                  style: TextStyle(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF009640),
+                  ),
                 ),
               ),
             ],
@@ -1324,7 +1444,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 8. 2-Column Product Grid (Image 1)
+  // ───────────────────────────────────────────────────────── Product Grid Sliver
   Widget _buildProductGridSliver() {
     return StreamBuilder<List<MedicineProduct>>(
       stream: getProductsRx.valueStreamData,
@@ -1379,7 +1499,35 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 9. Load More Button (Image 1)
+  Widget _buildProductGridWidget() {
+    return StreamBuilder<List<MedicineProduct>>(
+      stream: getProductsRx.valueStreamData,
+      builder: (context, snapshot) {
+        final allProducts = snapshot.data ?? _fallbackProducts;
+        final visibleCount = allProducts.length < 6 ? allProducts.length : 6;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14.w),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: visibleCount,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.68,
+              crossAxisSpacing: 10.w,
+              mainAxisSpacing: 12.h,
+            ),
+            itemBuilder: (context, index) {
+              return MedivilaProductCard(product: allProducts[index]);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // ───────────────────────────────────────────────────────── Load More Button
   Widget _buildLoadMoreButton() {
     return StreamBuilder<List<MedicineProduct>>(
       stream: getProductsRx.valueStreamData,
@@ -1398,13 +1546,17 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
               },
               borderRadius: BorderRadius.circular(25.r),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF009640), // Green pill (Image 1)
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF22C55E), Color(0xFF059669)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                   borderRadius: BorderRadius.circular(25.r),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF009640).withOpacity(0.3),
+                      color: const Color(0xFF16A34A).withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -1426,7 +1578,55 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // Fallback diagnostic lab tests matching Image 3
+  // Fallbacks
+  static final List<OfferItem> _fallbackOffers = [
+    OfferItem(
+      id: 1,
+      title: 'Upload Prescription',
+      topText: 'Upload Prescription',
+      discount: '7% Discount',
+      mainText: '7% Discount',
+      buttonText: 'Upload',
+      buttonLink: 'prescription',
+      image: 'https://api.medivila.com/storage/offers/6a44d1dc6de73.webp',
+      rawCardColor: '#10ADBE',
+    ),
+    OfferItem(
+      id: 2,
+      title: 'Whats App',
+      topText: 'Whats App',
+      discount: '5% Discount',
+      mainText: '5% Discount',
+      buttonText: 'Call Now',
+      buttonLink: 'https://wa.me/8801625491153',
+      image: 'https://api.medivila.com/storage/offers/6a44d1e94e7fe.webp',
+      rawCardColor: '#bc6c00',
+    ),
+    OfferItem(
+      id: 3,
+      title: 'Call Now',
+      topText: 'Call Now',
+      discount: '2% Discount',
+      mainText: '2% Discount',
+      supportText: '+8801625491153',
+      buttonText: 'Call Now',
+      buttonLink: 'https://wa.me/8801625491153',
+      image: 'https://api.medivila.com/storage/offers/6a47f4db3d3f3.webp',
+      rawCardColor: '#dc6803',
+    ),
+    OfferItem(
+      id: 4,
+      title: 'HealthCare',
+      topText: 'HealthCare',
+      discount: 'Upto 60% Discount',
+      mainText: 'Upto 60% Discount',
+      buttonText: 'Click Here',
+      buttonLink: 'https://medivila.com/category/healthcare',
+      image: 'https://api.medivila.com/storage/offers/6a47f3bc9c68b.webp',
+      rawCardColor: '#10ADBE',
+    ),
+  ];
+
   static final List<LabTestModel> _fallbackLabTests = [
     LabTestModel(
       id: 1,
@@ -1446,50 +1646,44 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     ),
   ];
 
-  // Fallback default categories matching Image 3
   static final List<CategoryItem> _defaultCategories = [
     CategoryItem(
-      id: 1,
+      id: 5,
       name: 'HealthCare',
       bnName: 'HealthCare',
       slug: 'healthcare',
-      image:
-          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200',
+      image: 'https://api.medivila.com/storage/rauvRIlkn2jt8sQzHZmZnBAg90vHWFET.webp',
     ),
     CategoryItem(
-      id: 2,
-      name: 'Baby & Mom Care',
-      bnName: 'Baby & Mom Care',
-      slug: 'baby-mom-care',
-      image: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=200',
-    ),
-    CategoryItem(
-      id: 3,
+      id: 16,
       name: 'Sergical & Ortho Care',
       bnName: 'Sergical & Ortho Care',
       slug: 'sergical-ortho-care',
-      image:
-          'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=200',
+      image: 'https://api.medivila.com/storage/sZw999wWzCZ6vfFzKbLyg9ahqYdl0cP0.webp',
     ),
     CategoryItem(
-      id: 4,
-      name: 'Lab Test',
-      bnName: 'Lab Test',
-      slug: 'lab-test',
-      image:
-          'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=200',
+      id: 86,
+      name: 'Medical Equipments',
+      bnName: 'Medical Equipments',
+      slug: 'medical-equipments',
+      image: 'https://api.medivila.com/storage/B1MsEz3L316g9k6syQRqYoV1KeFGl3qC.webp',
     ),
     CategoryItem(
-      id: 5,
-      name: 'Natural & Nutritional',
-      bnName: 'Natural & Nutritional',
-      slug: 'natural-nutritional',
-      image:
-          'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=200',
+      id: 14,
+      name: 'Baby & Mom Care',
+      bnName: 'Baby & Mom Care',
+      slug: 'baby-mom-care',
+      image: 'https://api.medivila.com/storage/Zy0VO1ho0DOHbH5pFsCfpQzPJwn2J4gx.webp',
+    ),
+    CategoryItem(
+      id: 12,
+      name: 'Personal & Privacy care',
+      bnName: 'Personal & Privacy care',
+      slug: 'personal-privacy-care',
+      image: 'https://api.medivila.com/storage/9EoOLr1HZptUdxx9zUKgHOzznSIWLih9.webp',
     ),
   ];
 
-  // Fallback products matching Image 1
   static final List<MedicineProduct> _fallbackProducts = [
     MedicineProduct(
       id: 101,
@@ -1512,4 +1706,213 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       ],
     ),
   ];
+}
+
+// ───────────────────────────────────────────────────────────── Individual Section for Each Home Category (matches ProductSection.jsx)
+class _HomePageCategoryProductSection extends StatefulWidget {
+  const _HomePageCategoryProductSection({
+    required this.menu,
+    required this.onViewAll,
+  });
+
+  final HomePageMenu menu;
+  final VoidCallback onViewAll;
+
+  @override
+  State<_HomePageCategoryProductSection> createState() =>
+      _HomePageCategoryProductSectionState();
+}
+
+class _HomePageCategoryProductSectionState
+    extends State<_HomePageCategoryProductSection> {
+  List<MedicineProduct> _products = [];
+  bool _loading = true;
+  int _visibleCount = 6;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategoryProducts();
+  }
+
+  Future<void> _fetchCategoryProducts() async {
+    final catId = widget.menu.categoryId ?? widget.menu.category?.id;
+    if (catId == null) return;
+
+    try {
+      final items = await ProductsApi.instance.getProducts(
+        categoryId: catId,
+        limit: 10,
+      );
+      if (mounted) {
+        setState(() {
+          _products = items;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loading && _products.isEmpty) return const SizedBox.shrink();
+
+    final shown = _products.take(_visibleCount).toList();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 24.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header (Title + Green Gradient Accent Line + Product Count Badge)
+          Padding(
+            padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 12.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.menu.name,
+                      style: TextStyle(
+                        fontSize: 16.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Container(
+                      width: 44.w,
+                      height: 3.h,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4ADE80), Color(0xFF059669)],
+                        ),
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_products.isNotEmpty)
+                  InkWell(
+                    onTap: widget.onViewAll,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${_products.length} products',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF009640),
+                            ),
+                          ),
+                          SizedBox(width: 3.w),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 10,
+                            color: Color(0xFF009640),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Product Grid or Shimmer
+          if (_loading)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 4,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.68,
+                  crossAxisSpacing: 10.w,
+                  mainAxisSpacing: 12.h,
+                ),
+                itemBuilder: (_, __) => Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: shown.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.68,
+                  crossAxisSpacing: 10.w,
+                  mainAxisSpacing: 12.h,
+                ),
+                itemBuilder: (context, idx) {
+                  return MedivilaProductCard(product: shown[idx]);
+                },
+              ),
+            ),
+
+          // "Load More" / "View All" Button for Section
+          if (_products.length > _visibleCount)
+            Padding(
+              padding: EdgeInsets.only(top: 14.h),
+              child: Center(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _visibleCount += 6;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(20.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF22C55E), Color(0xFF059669)],
+                      ),
+                      borderRadius: BorderRadius.circular(20.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF16A34A).withOpacity(0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'Load More (${shown.length} of ${_products.length})',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

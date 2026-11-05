@@ -6,7 +6,7 @@ class AppConfig {
       'আপনার নির্ভরযোগ্য অনলাইন ফার্মেসি ও স্বাস্থ্যসেবা';
   static const String helplinePhone = '+8801625491153';
   static const String supportEmail = 'medivila.com@gmail.com';
-  static const String logoAsset = 'assets/images/playstore.png';
+  static const String logoAsset = 'assets/images/medivila-logo-bn.png';
 
   /// Primary API base URL as specified in MOBILE_APP_API_DOCUMENTATION.md
   static const String apiBaseUrl = String.fromEnvironment(

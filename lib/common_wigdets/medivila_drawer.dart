@@ -135,7 +135,7 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const BrandLogo(height: 34),
+                  BrandLogo(height: 38.h, width: 135.w),
                   InkWell(
                     onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(20.r),
