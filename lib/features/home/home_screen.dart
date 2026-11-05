@@ -19,6 +19,7 @@ import '../../provider/auth_provider.dart';
 import '../lab_tests/lab_tests_screen.dart';
 import '../prescription/prescription_screen.dart';
 import '../profile/profile_screen.dart';
+import '../search/search_screen.dart';
 
 class MedivilaHomeScreen extends StatefulWidget {
   const MedivilaHomeScreen({super.key});
@@ -32,12 +33,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final PageController _bannerPageController = PageController();
   final PageController _serviceBannerPageController = PageController(
-    initialPage: 500000,
-    viewportFraction: 0.58,
+    viewportFraction: 0.72,
   );
   final PageController _offerPageController = PageController(
-    initialPage: 500000,
-    viewportFraction: 0.58,
+    viewportFraction: 0.50,
   );
 
   int _currentBannerIndex = 0;
@@ -47,11 +46,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
   // Search placeholder cycling animation (matches HeaderSearchBar.jsx)
   final List<String> _searchPlaceholders = const [
-    'আপনি কি খুঁজতে চান?',
-    'Wholesale পণ্যের নাম লিখুন...',
-    'ব্র্যান্ড বা ক্যাটাগরি সার্চ করুন',
+    'পণ্যের নাম লিখুন...',
     'সেরা অফার খুঁজুন...',
-    'Wholesale পণ্য কোড বা নাম লিখুন',
+    'আপনি কি খুঁজতে চান?',
+    'পণ্য কোড বা নাম লিখুন',
   ];
   int _currentPlaceholderIndex = 0;
   Timer? _placeholderTimer;
@@ -98,7 +96,12 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     _offerTimer?.cancel();
     _offerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_offerPageController.hasClients) return;
-      final nextPage = _offerPageController.page!.round() + 1;
+      final offers = getOffersRx.dataFetcher.valueOrNull;
+      final count = offers == null || offers.isEmpty
+          ? _fallbackOffers.length
+          : offers.length;
+      if (count <= 1) return;
+      final nextPage = (_offerPageController.page!.round() + 1) % count;
       _offerPageController.animateToPage(
         nextPage,
         duration: const Duration(milliseconds: 500),
@@ -111,7 +114,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     _serviceBannerTimer?.cancel();
     _serviceBannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!_serviceBannerPageController.hasClients) return;
-      final nextPage = _serviceBannerPageController.page!.round() + 1;
+      final banners = getServiceBannersRx.dataFetcher.valueOrNull ?? const [];
+      if (banners.length <= 1) return;
+      final nextPage =
+          (_serviceBannerPageController.page!.round() + 1) % banners.length;
       _serviceBannerPageController.animateToPage(
         nextPage,
         duration: const Duration(milliseconds: 500),
@@ -162,9 +168,13 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
 
   void _onSearch(String query) {
     final q = query.trim();
-    getProductsRx.fetchProducts(
-      categoryId: _selectedCategoryId,
-      search: q.isNotEmpty ? q : null,
+    if (q.isEmpty) {
+      getProductsRx.fetchProducts(categoryId: _selectedCategoryId);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SearchScreen(initialQuery: q)),
     );
   }
 
@@ -497,41 +507,42 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────── 2. Emerald Search Bar (matches HeaderSearchBar.jsx)
+  // ───────────────────────────────────────────────────────── 2. Search Bar (Exact Match to Image 1)
   Widget _buildEmeraldSearchBar() {
     final currentPlaceholder = _searchPlaceholders[_currentPlaceholderIndex];
 
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 10.h),
+      padding: EdgeInsets.fromLTRB(14.w, 4.h, 14.w, 8.h),
       child: Container(
         height: 48.h,
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: const Color(0xFF86EFAC), // emerald-300 soft border
-            width: 1.5,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFF9FBFF),
+              Color(0xFFEFF6FF),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF16A34A).withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: const Color(0xFF4A90E2),
+            width: 1.6,
+          ),
         ),
         child: Row(
           children: [
             SizedBox(width: 12.w),
-            // Left Search Icon in Emerald Green
+            // Left Blue Search Icon (Exact Match to Image 1)
             Icon(
               Icons.search_rounded,
-              color: const Color(0xFF16A34A),
-              size: 22.sp,
+              color: const Color(0xFF3B82F6),
+              size: 21.sp,
             ),
-            SizedBox(width: 10.w),
-            // Search Input with Animated Cycling Placeholder
+            SizedBox(width: 8.w),
+
+            // Search Input with Cycling Placeholder ("পণ্যের নাম লিখুন...")
             Expanded(
               child: TextField(
                 controller: _searchCtrl,
@@ -550,8 +561,9 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 decoration: InputDecoration(
                   hintText: currentPlaceholder,
                   hintStyle: TextStyle(
-                    fontSize: 13.sp,
-                    color: const Color(0xFF6B7280),
+                    fontSize: 13.5.sp,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w400,
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -559,42 +571,50 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 ),
               ),
             ),
+
             if (_searchCtrl.text.isNotEmpty)
               IconButton(
                 icon: const Icon(
                   Icons.close_rounded,
                   size: 18,
-                  color: Color(0xFF9CA3AF),
+                  color: Color(0xFF94A3B8),
                 ),
                 onPressed: () {
                   _searchCtrl.clear();
                   _onSearch('');
                 },
               ),
-            // Right Search Button with emerald gradient
-            InkWell(
-              onTap: () => _onSearch(_searchCtrl.text),
-              borderRadius: BorderRadius.horizontal(
-                right: Radius.circular(10.r),
-              ),
-              child: Container(
-                width: 48.w,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF22C55E), Color(0xFF059669)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+
+            // Right Floating Blue Gradient Search Button (Exact Match to Image 1)
+            Padding(
+              padding: EdgeInsets.only(right: 5.w, top: 4.h, bottom: 4.h),
+              child: InkWell(
+                onTap: () => _onSearch(_searchCtrl.text),
+                borderRadius: BorderRadius.circular(10.r),
+                child: Container(
+                  width: 42.w,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF0284C7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.horizontal(
-                    right: Radius.circular(10.r),
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: Colors.white,
-                    size: 20,
+                  child: const Center(
+                    child: Icon(
+                      Icons.search_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
@@ -917,16 +937,17 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: 14.w),
           child: SizedBox(
-            height: 124.h,
+            height: 132.h,
             child: PageView.builder(
               controller: _serviceBannerPageController,
-              itemCount: 1000000,
+              itemCount: banners.length,
               itemBuilder: (context, index) {
                 return Padding(
-                  padding: EdgeInsets.only(right: 10.w),
-                  child: _buildServiceBannerCard(
-                    banners[index % banners.length],
+                  padding: EdgeInsets.only(
+                    left: index == 0 ? 14.w : 0,
+                    right: 10.w,
                   ),
+                  child: _buildServiceBannerCard(banners[index]),
                 );
               },
             ),
@@ -945,7 +966,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       },
       borderRadius: BorderRadius.circular(14.r),
       child: Container(
-        width: 220.w,
+        width: double.infinity,
         padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
           color: const Color(0xFFF4FBF7), // Mint background
@@ -960,12 +981,15 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  banner.tag?.isNotEmpty == true ? banner.tag! : 'HOME',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
+                Expanded(
+                  child: Text(
+                    banner.tag?.isNotEmpty == true ? banner.tag! : 'HOME',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                 ),
                 Container(
@@ -1019,39 +1043,46 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 4.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(color: const Color(0xFFCBD5E1)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        banner.buttonText?.replaceAll(' ↗', '') ?? 'Book Now',
-                        style: TextStyle(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 5.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            banner.buttonText?.replaceAll(' ↗', '') ??
+                                'Book Now',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 3.w),
+                        Icon(
+                          Icons.north_east_rounded,
+                          size: 11.sp,
                           color: const Color(0xFF0F172A),
                         ),
-                      ),
-                      SizedBox(width: 3.w),
-                      Icon(
-                        Icons.north_east_rounded,
-                        size: 11.sp,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 Container(
-                  width: 38.w,
-                  height: 28.h,
+                  width: 68.w,
+                  height: 52.h,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6.r),
@@ -1099,16 +1130,16 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                 : _fallbackOffers;
 
             return SizedBox(
-              height: 175.h,
+              height: 150.h,
               child: PageView.builder(
                 controller: _offerPageController,
                 padEnds: false,
-                itemCount: offers.length * 100000,
+                itemCount: offers.length,
                 itemBuilder: (context, index) {
-                  final offer = offers[index % offers.length];
+                  final offer = offers[index];
                   return Padding(
                     padding: EdgeInsets.only(
-                      left: index == 500000 ? 14.w : 0,
+                      left: index == 0 ? 14.w : 0,
                       right: 12.w,
                     ),
                     child: _buildOfferCard(offer, index % offers.length),
@@ -1136,7 +1167,6 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         bottomRight: Radius.circular(16.r),
       ),
       child: Container(
-        width: 220.w,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [const Color(0xFFFFFEF9), accent],
@@ -1157,7 +1187,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             ),
           ],
         ),
-        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
+        padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 8.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1174,7 +1204,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.5.sp,
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                         height: 1.2,
@@ -1183,15 +1213,15 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                   ),
                 ),
                 Container(
-                  width: 44.w,
-                  height: 44.w,
+                  width: 36.w,
+                  height: 36.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 3),
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withOpacity(0.04),
                         blurRadius: 4,
                       ),
                     ],
@@ -1203,7 +1233,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       errorBuilder: (_, __, ___) => Icon(
                         Icons.local_offer_rounded,
                         color: accent,
-                        size: 20,
+                        size: 16,
                       ),
                     ),
                   ),
@@ -1242,7 +1272,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             // Bottom Action Button with white background and accent text
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 7.h),
+              padding: EdgeInsets.symmetric(vertical: 5.h),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8.r),
@@ -1289,90 +1319,107 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
         StreamBuilder<List<CategoryItem>>(
           stream: getCategoriesRx.valueStreamData,
           builder: (context, snapshot) {
-            final categories = (snapshot.data ?? _defaultCategories)
-                .where((category) => category.parentId == null)
+            final bootstrapCats =
+                getBootstrapRx.dataFetcher.valueOrNull?.categories;
+            final streamCats = snapshot.data;
+            List<CategoryItem> sourceList = [];
+            if (streamCats != null && streamCats.isNotEmpty) {
+              sourceList = streamCats;
+            } else if (bootstrapCats != null && bootstrapCats.isNotEmpty) {
+              sourceList = bootstrapCats;
+            } else {
+              sourceList = _defaultCategories;
+            }
+
+            final rootCategories = sourceList
+                .where((category) => category.parentId == null || category.parentId == 0)
                 .toList();
+            final categories =
+                rootCategories.isNotEmpty ? rootCategories : sourceList;
 
-            return SizedBox(
-              height: 116.h,
-              child: ListView.separated(
-                padding: EdgeInsets.symmetric(horizontal: 14.w),
-                scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
-                separatorBuilder: (_, __) => SizedBox(width: 12.w),
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  final isSelected = _selectedRootCategoryId == cat.id;
+            return GridView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: categories.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 8.w,
+                mainAxisSpacing: 12.h,
+                childAspectRatio: 0.68,
+              ),
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final isSelected = _selectedRootCategoryId == cat.id;
 
-                  return InkWell(
-                    onTap: () => _onCategorySelected(cat, cat.displayName),
-                    borderRadius: BorderRadius.circular(16.r),
-                    child: SizedBox(
-                      width: 82.w,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 72.w,
-                            height: 72.w,
-                            padding: EdgeInsets.all(4.w),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18.r),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : const Color(0xFFE2E8F0),
-                                width: isSelected ? 2 : 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                return InkWell(
+                  onTap: () => _onCategorySelected(cat, cat.displayName),
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Column(
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 1.0,
+                        child: Container(
+                          padding: EdgeInsets.all(5.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : const Color(0xFFE2E8F0),
+                              width: isSelected ? 2 : 1,
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14.r),
-                              child: Container(
-                                color: const Color(0xFFF8FAFC),
-                                child: Image.network(
-                                  cat.imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Center(
-                                    child: Icon(
-                                      Icons.medical_services_rounded,
-                                      color: AppColors.primary,
-                                      size: 28.sp,
-                                    ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12.r),
+                            child: Container(
+                              color: const Color(0xFFF8FAFC),
+                              child: Image.network(
+                                cat.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Icon(
+                                    Icons.medical_services_rounded,
+                                    color: AppColors.primary,
+                                    size: 26.sp,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          SizedBox(height: 5.h),
-                          Text(
-                            cat.displayName,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 10.5.sp,
-                              fontWeight: isSelected
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : const Color(0xFF1E293B),
-                              height: 1.15,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                      SizedBox(height: 6.h),
+                      Expanded(
+                        child: Text(
+                          cat.displayName,
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.5.sp,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? AppColors.primary
+                                : const Color(0xFF1E293B),
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),
@@ -1455,7 +1502,14 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
     return StreamBuilder<List<CategoryItem>>(
       stream: getCategoriesRx.valueStreamData,
       builder: (context, snapshot) {
-        final categories = snapshot.data ?? _defaultCategories;
+        final streamCats = snapshot.data;
+        final bootstrapCats =
+            getBootstrapRx.dataFetcher.valueOrNull?.categories;
+        final categories = (streamCats != null && streamCats.isNotEmpty)
+            ? streamCats
+            : (bootstrapCats != null && bootstrapCats.isNotEmpty)
+                ? bootstrapCats
+                : _defaultCategories;
         CategoryItem? selectedRoot;
         for (final category in categories) {
           if (category.id == _selectedRootCategoryId) {
@@ -1751,18 +1805,18 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       image: 'https://api.medivila.com/storage/rauvRIlkn2jt8sQzHZmZnBAg90vHWFET.webp',
     ),
     CategoryItem(
-      id: 16,
-      name: 'Sergical & Ortho Care',
-      bnName: 'Sergical & Ortho Care',
-      slug: 'sergical-ortho-care',
-      image: 'https://api.medivila.com/storage/sZw999wWzCZ6vfFzKbLyg9ahqYdl0cP0.webp',
-    ),
-    CategoryItem(
       id: 86,
       name: 'Medical Equipments',
       bnName: 'Medical Equipments',
       slug: 'medical-equipments',
       image: 'https://api.medivila.com/storage/B1MsEz3L316g9k6syQRqYoV1KeFGl3qC.webp',
+    ),
+    CategoryItem(
+      id: 90,
+      name: 'Medical Lab Consumables',
+      bnName: 'Medical Lab Consumables',
+      slug: 'medical-lab-consumables-2',
+      image: 'https://api.medivila.com/storage/emoMNdgI2SYF58LJeIFqDrbzq6HrRJcH.webp',
     ),
     CategoryItem(
       id: 14,
@@ -1772,11 +1826,32 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       image: 'https://api.medivila.com/storage/Zy0VO1ho0DOHbH5pFsCfpQzPJwn2J4gx.webp',
     ),
     CategoryItem(
+      id: 16,
+      name: 'Sergical & Ortho Care',
+      bnName: 'Sergical & Ortho Care',
+      slug: 'sergical-ortho-care',
+      image: 'https://api.medivila.com/storage/sZw999wWzCZ6vfFzKbLyg9ahqYdl0cP0.webp',
+    ),
+    CategoryItem(
       id: 12,
       name: 'Personal & Privacy care',
       bnName: 'Personal & Privacy care',
       slug: 'personal-privacy-care',
       image: 'https://api.medivila.com/storage/9EoOLr1HZptUdxx9zUKgHOzznSIWLih9.webp',
+    ),
+    CategoryItem(
+      id: 20,
+      name: 'Beauty & Lifestyles',
+      bnName: 'Beauty & Lifestyles',
+      slug: 'beauty-lifestyles',
+      image: 'https://api.medivila.com/storage/QwNElMRA29cV0oVlgD696xPVNIV4Iiyi.webp',
+    ),
+    CategoryItem(
+      id: 31,
+      name: 'Homeo & Wellness Care',
+      bnName: 'Homeo & Wellness Care',
+      slug: 'homeo-wellness-care',
+      image: 'https://api.medivila.com/storage/hDBF0dSDMdhdFQjvOZ6eZf7YewBocCz9.webp',
     ),
   ];
 

@@ -27,6 +27,7 @@ class AuthBottomSheet extends StatefulWidget {
 
 class _AuthBottomSheetState extends State<AuthBottomSheet> {
   int _selectedTab = 0; // 0 = Login, 1 = Register
+  final _loginNameCtrl = TextEditingController();
   final _loginPhoneCtrl = TextEditingController();
 
   final _regNameCtrl = TextEditingController();
@@ -38,6 +39,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
 
   @override
   void dispose() {
+    _loginNameCtrl.dispose();
     _loginPhoneCtrl.dispose();
     _regNameCtrl.dispose();
     _regPhoneCtrl.dispose();
@@ -46,7 +48,12 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
   }
 
   Future<void> _handleLogin() async {
+    final name = _loginNameCtrl.text.trim();
     final phone = _loginPhoneCtrl.text.trim();
+    if (name.isEmpty) {
+      AppToast.error('আপনার নাম লিখুন');
+      return;
+    }
     if (!AppConfig.isValidBdPhone(phone)) {
       AppToast.error('সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)');
       return;
@@ -55,7 +62,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
     setState(() => _isLoading = true);
     try {
       final clean = AppConfig.cleanBdPhone(phone);
-      await context.read<AuthProvider>().loginWithPhone(clean);
+      await context.read<AuthProvider>().loginWithPhone(clean, username: name);
       if (!mounted) return;
       setState(() => _isLoading = false);
       Navigator.pop(context);
@@ -69,6 +76,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
         AppToast.error('অ্যাকাউন্ট পাওয়া যায়নি। দয়া করে রেজিস্ট্রেশন করুন।');
         setState(() {
           _selectedTab = 1;
+          _regNameCtrl.text = name;
           _regPhoneCtrl.text = phone;
         });
       } else {
@@ -113,10 +121,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       AppToast.error(
-        apiError(
-          e,
-          'রেজিস্ট্রেশন করা যায়নি। নম্বর ইতিমধ্যে ব্যবহৃত হতে পারে।',
-        ),
+        apiError(e, 'রেজিস্ট্রেশন করা যায়নি। নম্বর ইতিমধ্যে ব্যবহৃত হতে পারে।'),
       );
     }
   }
@@ -234,6 +239,42 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
             SizedBox(height: 16.h),
 
             if (_selectedTab == 0) ...[
+              Text(
+                'আপনার নাম / ইউজারনেম',
+                style: TextStyle(
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF334155),
+                ),
+              ),
+              SizedBox(height: 6.h),
+              TextField(
+                controller: _loginNameCtrl,
+                textInputAction: TextInputAction.next,
+                style: TextStyle(fontSize: 14.sp),
+                decoration: InputDecoration(
+                  hintText: 'আপনার নাম লিখুন',
+                  prefixIcon: const Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 12.h,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
               Text(
                 'মোবাইল নম্বর',
                 style: TextStyle(
@@ -455,4 +496,3 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
     );
   }
 }
-

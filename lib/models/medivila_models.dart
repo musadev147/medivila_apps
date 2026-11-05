@@ -92,21 +92,40 @@ class CategoryItem {
 
   factory CategoryItem.fromJson(Map<String, dynamic> json, {int? parentId}) {
     final id = int.tryParse(json['id']?.toString() ?? '0') ?? 0;
-    return CategoryItem(
-      id: id,
-      name: json['name']?.toString() ?? '',
-      bnName: json['bn_name']?.toString(),
-      slug: json['slug']?.toString() ?? '',
-      image: json['image']?.toString(),
-      parentId: int.tryParse(json['parent_id']?.toString() ?? '') ?? parentId,
-      children: (json['children'] as List? ?? [])
+    final rawChildren = json['children'];
+    final List<CategoryItem> parsedChildren;
+    if (rawChildren is List) {
+      parsedChildren = rawChildren
+          .whereType<Map>()
           .map(
             (e) => CategoryItem.fromJson(
               Map<String, dynamic>.from(e),
               parentId: id,
             ),
           )
-          .toList(),
+          .toList();
+    } else {
+      parsedChildren = const [];
+    }
+
+    final rawParentId = json['parent_id'];
+    int? resolvedParentId;
+    if (rawParentId != null) {
+      final p = int.tryParse(rawParentId.toString());
+      if (p != null && p > 0) {
+        resolvedParentId = p;
+      }
+    }
+    resolvedParentId ??= parentId;
+
+    return CategoryItem(
+      id: id,
+      name: json['name']?.toString() ?? '',
+      bnName: json['bn_name']?.toString(),
+      slug: json['slug']?.toString() ?? '',
+      image: json['image']?.toString(),
+      parentId: resolvedParentId,
+      children: parsedChildren,
     );
   }
 }

@@ -455,9 +455,20 @@ class _MedivilaDrawerState extends State<MedivilaDrawer> {
                   StreamBuilder<List<CategoryItem>>(
                     stream: getCategoriesRx.valueStreamData,
                     builder: (context, snapshot) {
-                      final categories = (snapshot.data ?? _defaultCategories)
-                          .where((category) => category.parentId == null)
+                      final streamCats = snapshot.data;
+                      final bootstrapCats =
+                          getBootstrapRx.dataFetcher.valueOrNull?.categories;
+                      final sourceList = (streamCats != null && streamCats.isNotEmpty)
+                          ? streamCats
+                          : (bootstrapCats != null && bootstrapCats.isNotEmpty)
+                              ? bootstrapCats
+                              : _defaultCategories;
+                      final rootCategories = sourceList
+                          .where((category) =>
+                              category.parentId == null || category.parentId == 0)
                           .toList();
+                      final categories =
+                          rootCategories.isNotEmpty ? rootCategories : sourceList;
                       return Column(
                         children: categories
                             .map((cat) => _buildCategoryTile(cat))

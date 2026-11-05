@@ -390,10 +390,15 @@ class UserAuthApi {
   UserAuthApi._();
   static final UserAuthApi instance = UserAuthApi._();
 
-  Future<MedivilaUser> fastPhoneLogin(String phone) async {
+  Future<MedivilaUser> fastPhoneLogin(String phone, {String? username}) async {
+    final payload = {'phone': phone.trim()};
+    if (username != null && username.trim().isNotEmpty) {
+      payload['name'] = username.trim();
+      payload['username'] = username.trim();
+    }
     final response = await postHttp(
       Endpoints.userLogin(),
-      data: {'phone': phone.trim()},
+      data: payload,
       options: Options(extra: {'noAuth': true}),
     );
     if (response.statusCode != 200 || response.data is! Map) {

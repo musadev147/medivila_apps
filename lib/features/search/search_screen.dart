@@ -62,92 +62,89 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       body: Column(
         children: [
-          // Magenta Search Bar (Exact match to Image 1 & 3)
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-            child: Container(
-              height: 46.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: const Color(0xFF16A34A), // Magenta border
-                  width: 1.5,
+          // Full-width search bar
+          Container(
+            height: 46.h,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: const Color(0xFF16A34A), // Magenta border
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(width: 10.w),
+                Icon(
+                  Icons.search_rounded,
+                  color: const Color(0xFF16A34A),
+                  size: 22.sp,
                 ),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(width: 10.w),
-                  Icon(
-                    Icons.search_rounded,
-                    color: const Color(0xFF16A34A),
-                    size: 22.sp,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchCtrl,
-                      autofocus: widget.initialQuery.isEmpty,
-                      onSubmitted: _executeSearch,
-                      onChanged: (val) {
-                        setState(() {});
-                        if (val.trim().isEmpty) {
-                          _executeSearch('');
-                        }
-                      },
-                      style: TextStyle(
-                        fontSize: 13.5.sp,
-                        color: const Color(0xFF0F172A),
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Wholesale পণ্য কোড বা নাম লিখুন',
-                        hintStyle: TextStyle(
-                          fontSize: 13.sp,
-                          color: const Color(0xFF757575),
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                  if (_searchCtrl.text.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        _searchCtrl.clear();
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    autofocus: widget.initialQuery.isEmpty,
+                    onSubmitted: _executeSearch,
+                    onChanged: (val) {
+                      setState(() {});
+                      if (val.trim().isEmpty) {
                         _executeSearch('');
-                      },
+                      }
+                    },
+                    style: TextStyle(
+                      fontSize: 13.5.sp,
+                      color: const Color(0xFF0F172A),
                     ),
-                  InkWell(
-                    onTap: () => _executeSearch(_searchCtrl.text),
-                    borderRadius: BorderRadius.horizontal(
-                      right: Radius.circular(6.5.r),
-                    ),
-                    child: Container(
-                      width: 48.w,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF16A34A),
-                        borderRadius: BorderRadius.horizontal(
-                          right: Radius.circular(6.5.r),
-                        ),
+                    decoration: InputDecoration(
+                      hintText: 'Wholesale পণ্য কোড বা নাম লিখুন',
+                      hintStyle: TextStyle(
+                        fontSize: 13.sp,
+                        color: const Color(0xFF757575),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.search_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                if (_searchCtrl.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() {});
+                      _executeSearch('');
+                    },
+                  ),
+                InkWell(
+                  onTap: () => _executeSearch(_searchCtrl.text),
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(6.5.r),
+                  ),
+                  child: Container(
+                    width: 48.w,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16A34A),
+                      borderRadius: BorderRadius.horizontal(
+                        right: Radius.circular(6.5.r),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.search_rounded,
+                        color: Colors.white,
+                        size: 22,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 

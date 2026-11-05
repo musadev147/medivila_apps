@@ -22,8 +22,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loginWithPhone(String phone) async {
-    final loggedInUser = await UserAuthApi.instance.fastPhoneLogin(phone);
+  Future<void> loginWithPhone(String phone, {String? username}) async {
+    final loggedInUser = await UserAuthApi.instance.fastPhoneLogin(
+      phone,
+      username: username,
+    );
     final token = loggedInUser.token;
     if (token == null || token.isEmpty) {
       throw const FormatException('Login response is missing token');

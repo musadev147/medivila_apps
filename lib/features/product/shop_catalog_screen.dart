@@ -147,8 +147,15 @@ class _ShopCatalogScreenState extends State<ShopCatalogScreen> {
           StreamBuilder<List<CategoryItem>>(
             stream: getCategoriesRx.valueStreamData,
             builder: (context, snapshot) {
-              final categories = (snapshot.data ?? [])
-                  .where((category) => category.parentId == null)
+              final streamCats = snapshot.data;
+              final bootstrapCats =
+                  getBootstrapRx.dataFetcher.valueOrNull?.categories;
+              final sourceList = (streamCats != null && streamCats.isNotEmpty)
+                  ? streamCats
+                  : (bootstrapCats ?? <CategoryItem>[]);
+              final categories = sourceList
+                  .where((category) =>
+                      category.parentId == null || category.parentId == 0)
                   .toList();
               if (categories.isEmpty) return const SizedBox.shrink();
 
