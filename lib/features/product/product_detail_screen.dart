@@ -29,6 +29,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<MedicineProduct> _relatedProducts = [];
   bool _isRelatedLoading = false;
   String? _relatedError;
+  bool _showFullDescription = false;
 
   @override
   void initState() {
@@ -395,13 +396,62 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                           ),
                           SizedBox(height: 6.h),
-                          Text(
-                            p.description!,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSoft,
-                              height: 1.4,
-                            ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final descriptionStyle = TextStyle(
+                                fontSize: 12.sp,
+                                color: AppColors.textSoft,
+                                height: 1.4,
+                              );
+                              final painter = TextPainter(
+                                text: TextSpan(
+                                  text: p.description!,
+                                  style: descriptionStyle,
+                                ),
+                                textDirection: TextDirection.ltr,
+                                maxLines: null,
+                              )..layout(maxWidth: constraints.maxWidth);
+
+                              final isLongDescription =
+                                  painter.computeLineMetrics().length > 10;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    p.description!,
+                                    maxLines: _showFullDescription ? null : 10,
+                                    overflow: _showFullDescription
+                                        ? TextOverflow.visible
+                                        : TextOverflow.ellipsis,
+                                    style: descriptionStyle,
+                                  ),
+                                  if (isLongDescription)
+                                    TextButton(
+                                      onPressed: () => setState(() {
+                                        _showFullDescription =
+                                            !_showFullDescription;
+                                      }),
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        foregroundColor: AppColors.primary,
+                                      ),
+                                      child: Text(
+                                        _showFullDescription
+                                            ? 'কম দেখুন'
+                                            : 'See More',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ],

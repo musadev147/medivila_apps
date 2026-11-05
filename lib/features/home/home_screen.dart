@@ -226,6 +226,10 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
   void _selectCategoryFilter(CategoryItem category) {
     setState(() {
       _selectedCategoryId = category.id;
+      _selectedRootCategoryId =
+          category.parentId == null || category.parentId == 0
+          ? category.id
+          : category.parentId;
       _selectedCategoryName = category.displayName;
       _productsVisibleLimit = 10;
     });
@@ -1001,7 +1005,7 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                       Text(
                         '৳ ${discountedPrice.toStringAsFixed(0)}',
                         style: TextStyle(
-                          fontSize: 10.5.sp,
+                          fontSize: 9.5.sp,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF0F172A),
                         ),
@@ -1303,13 +1307,27 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Center(
-          child: Text(
-            'Shop by Category',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Shop by Category',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Container(
+                width: 52.w,
+                height: 3.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF60A5FA),
+                  borderRadius: BorderRadius.circular(3.r),
+                ),
+              ),
+            ],
           ),
         ),
         SizedBox(height: 12.h),
@@ -1365,21 +1383,18 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                           .toList();
 
                       return GridView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w),
+                        padding: EdgeInsets.symmetric(horizontal: 18.w),
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: pageItems.length,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
-                          crossAxisSpacing: 8.w,
-                          mainAxisSpacing: 10.h,
-                          childAspectRatio: 0.68,
+                          crossAxisSpacing: 10.w,
+                          mainAxisSpacing: 6.h,
+                          childAspectRatio: 0.72,
                         ),
                         itemBuilder: (context, index) {
                           final cat = pageItems[index];
-                          final isSelected = _selectedRootCategoryId == cat.id;
-                          final subcats = _subcategoriesFor(cat, sourceList);
-                          final hasSub = subcats.isNotEmpty;
 
                           return InkWell(
                             onTap: () {
@@ -1391,137 +1406,54 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
                               }
                             },
                             borderRadius: BorderRadius.circular(16.r),
-                            child: Column(
-                              children: [
-                                AspectRatio(
-                                  aspectRatio: 1.0,
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(5.w),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            16.r,
-                                          ),
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? AppColors.primary
-                                                : const Color(0xFFE2E8F0),
-                                            width: isSelected ? 2.2 : 1,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: isSelected
-                                                  ? AppColors.primary
-                                                        .withOpacity(0.18)
-                                                  : Colors.black.withOpacity(
-                                                      0.04,
-                                                    ),
-                                              blurRadius: isSelected ? 8 : 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14.r),
+                              ),
+                              child: Column(
+                                children: [
+                                  AspectRatio(
+                                    aspectRatio: 1.0,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14.r),
+                                      child: DecoratedBox(
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFF8FAFC),
                                         ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
-                                          child: Container(
-                                            color: const Color(0xFFF8FAFC),
-                                            child: Image.network(
-                                              cat.imageUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => Center(
-                                                child: Icon(
-                                                  Icons
-                                                      .medical_services_rounded,
-                                                  color: AppColors.primary,
-                                                  size: 26.sp,
-                                                ),
-                                              ),
+                                        child: Image.network(
+                                          cat.imageUrl,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (_, __, ___) => Center(
+                                            child: Icon(
+                                              Icons.medical_services_rounded,
+                                              color: AppColors.primary,
+                                              size: 26.sp,
                                             ),
                                           ),
                                         ),
                                       ),
-                                      // If category has subcategories, show a badge indicating subcategories
-                                      if (hasSub)
-                                        Positioned(
-                                          top: 3.w,
-                                          right: 3.w,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 4.w,
-                                              vertical: 1.5.h,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? AppColors.primary
-                                                  : const Color(0xFF0F172A),
-                                              borderRadius:
-                                                  BorderRadius.circular(6.r),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  '${subcats.length}',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 8.sp,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                Icon(
-                                                  Icons
-                                                      .keyboard_arrow_down_rounded,
-                                                  color: Colors.white,
-                                                  size: 9.sp,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      // Active Selected Check Badge
-                                      if (isSelected)
-                                        Positioned(
-                                          top: 3.w,
-                                          left: 3.w,
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.check_circle_rounded,
-                                              color: AppColors.primary,
-                                              size: 15.sp,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: 5.h),
-                                Expanded(
-                                  child: Text(
-                                    cat.displayName,
-                                    maxLines: 2,
-                                    textAlign: TextAlign.center,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10.5.sp,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : const Color(0xFF1E293B),
-                                      height: 1.15,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(height: 5.h),
+                                  Expanded(
+                                    child: Text(
+                                      cat.displayName,
+                                      maxLines: 2,
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 10.5.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF1E293B),
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -1788,29 +1720,33 @@ class _MedivilaHomeScreenState extends State<MedivilaHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedCategoryName,
-                    style: TextStyle(
-                      fontSize: 16.5.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Container(
-                    width: 44.w,
-                    height: 3.h,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF4ADE80), Color(0xFF059669)],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedCategoryName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
                       ),
-                      borderRadius: BorderRadius.circular(2.r),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 4.h),
+                    Container(
+                      width: 44.w,
+                      height: 3.h,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4ADE80), Color(0xFF059669)],
+                        ),
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
